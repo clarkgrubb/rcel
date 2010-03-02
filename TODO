@@ -1,5 +1,5 @@
 
-- ability to create libraries
-- automatically store last value and print in
-- preserve last stdout and don't reprint it (if next matches exactly)
-- don't compile unless line ends in a semicolon
+- ability to create libraries (pops into an editor)
+- write a parser for comments, string literals, and character literals.  Make
+  the end of line detector use this parser
+- automatically include dependencies

@@ -5,6 +5,9 @@ require 'erb'
 require 'readline'
 include Readline
 
+class CompilationError < StandardError; end
+class ExecutionError < StandardError; end
+
 C = 'c'
 CSHARP = 'c#'
 JAVALANG = 'java'
@@ -13,7 +16,8 @@ CPP = 'c++'
 LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
 
 def usage
-  raise "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: repl.rb LANGUAGE PROJECT_DIR"
+  puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: repl.rb LANGUAGE PROJECT_DIR"
+  exit -1
 end
 usage unless ARGV.length == 2
 if LANGUAGES.include?(ARGV[0].downcase)
@@ -141,7 +145,7 @@ def compile_source(source)
   unless $?.success?
     puts "ERROR compiling #{source}"
     puts output
-    raise
+    raise CompilationError
   end
   executable
 end
@@ -152,14 +156,34 @@ def run_executable(executable)
   unless $?.success?
     puts "ERROR running #{executable}"
     puts output
-    raise
+    raise ExecutionError
   end
   output   
 end
-  
+
+# doesn't handle comments, string literals, or character literals
+def line_complete?(line)
+  /\;\s*\Z/.match(line)
+end
+
+def puts_output(output, last_output)
+  if output.length >= last_output.length and last_output == output[0,last_output.length]
+    puts output[last_output.length,output.length]
+  else
+    puts output
+  end
+end
+
 lines = []
+last_output = ''
 loop do
-  line = readline("> ")
+  line = ''
+  continued_line = false
+  loop do
+    line << readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ")
+    break if line_complete?(line)
+    continued_line = true
+  end
   break if line.nil?
   begin
     new_lines = lines.dup
@@ -167,9 +191,9 @@ loop do
     source = make_source(new_lines)
     executable = compile_source(source)
     output = run_executable(executable)
-    puts output
+    puts_output(output, last_output)
+    last_output = output
     lines = new_lines
-  rescue
-    puts "ERROR: #{$!.message}"
+  rescue CompilationError, ExecutionError
   end
 end
