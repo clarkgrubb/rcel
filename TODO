@@ -1,5 +1,14 @@
 
-- ability to create libraries (pops into an editor)
+- ability to create libraries (pops into an editor) (finish this)
 - write a parser for comments, string literals, and character literals.  Make
   the end of line detector use this parser
 - automatically include dependencies
+- commands: #lib
+- commands: #help
+- ability to add includes, imports, link to libraries
+- generate a Makefile, Antfile
+- change executable name to dirname
+- framework: C++: stl or boost
+- ^D causes exception when editing
+- unit tests
+- if repl restart on project, find existing libraries

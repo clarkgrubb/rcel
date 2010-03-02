@@ -3,10 +3,12 @@
 require 'fileutils'
 require 'erb'
 require 'readline'
+
 include Readline
 
 class CompilationError < StandardError; end
 class ExecutionError < StandardError; end
+class LibraryEditError < StandardError; end
 
 C = 'c'
 CSHARP = 'c#'
@@ -30,6 +32,27 @@ else
   usage
 end
 FileUtils.mkdir_p DIRECTORY
+
+def help
+  case LANGUAGE
+  when C
+    puts <<EOS
+#help: display this menu
+#lib <LIBRARY_NAME>: to edit library
+#include <HEADER>: to include header
+EOS
+  when CPP
+    puts "implement me"
+  when OBJC
+    puts "implement me"
+  when JAVALANG
+    puts "implmenet me"
+  when CSHARP
+    puts "implement me"
+  end
+end
+
+help
 puts "Working in #{DIRECTORY} using language #{LANGUAGE}"
 
 GCC = `which gcc`.chomp
@@ -39,12 +62,20 @@ JAVAC = `which javac`.chomp
 MONO = `which mono`.chomp
 MCS = `which mcs`.chomp
 
+EDITOR = ENV['EDITOR'] || 'emacs'
 COMPILE_EXECUTABLE = {}
-COMPILE_EXECUTABLE[C] = '"#{GCC} -o #{executable} #{source}"'
+COMPILE_EXECUTABLE[C] = '"#{GCC} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} #{File.join(DIRECTORY, SOURCE[JAVALANG])}"'
 COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
-COMPILE_EXECUTABLE[OBJC] = '"#{GCC} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])}"'
-COMPILE_EXECUTABLE[CPP] = '"#{GPP} -o #{executable} #{source}"'
+COMPILE_EXECUTABLE[OBJC] = '"#{GCC} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
+COMPILE_EXECUTABLE[CPP] = '"#{GPP} -o #{executable} #{source} #{all_libraries}"'
+COMPILE_LIBRARY = {}
+COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
+COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
+COMPILE_LIBRARY[CSHARP] = '"#{MCS} #{library}"'
+COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
+COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
+# TODO other languages
 EXECUTABLE = {}
 EXECUTABLE[C] = 'main'
 EXECUTABLE[JAVALANG] = 'Main'
@@ -63,11 +94,18 @@ RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{DIRECTORY} #{EXECUTABLE[JAVALANG]}"'
 RUN_EXECUTABLE[CSHARP] = '"#{MONO} #{File.join(DIRECTORY, EXECUTABLE[CSHARP])}"'
 RUN_EXECUTABLE[OBJC] = '"#{executable}"'
 RUN_EXECUTABLE[CPP] = '"#{executable}"'
+SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
+HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
+OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'exe', OBJC => 'o', CPP => 'o' }
+
 MAIN_TEMPLATE = {}
 
 MAIN_TEMPLATE[C] =<<EOS
 
 #include <stdio.h>
+<% headers.each do |header| %>
+<%= '#include "' + header + '"' %>
+<% end %>
 
 int
 main (int argc, char **argv) {
@@ -124,8 +162,7 @@ int main() {
 }
 EOS
 
-def make_source(lines)
-  
+def make_source(lines, headers)  
   stdout = $stdout
   source = File.join(DIRECTORY,SOURCE[LANGUAGE])
   begin
@@ -138,9 +175,12 @@ def make_source(lines)
   source
 end
 
-def compile_source(source)
+def compile_source(source, libraries)
+  all_libraries = libraries.map { |lib| File.join(DIRECTORY, lib) }.join(' ')
+  puts "DEBUG all_libraries #{all_libraries}"
   executable = File.join(DIRECTORY, EXECUTABLE[LANGUAGE])
-  compile_arg = eval(COMPILE_EXECUTABLE[LANGUAGE])
+  compile_arg = eval(COMPILE_EXECUTABLE[LANGUAGE], binding)
+  puts "DEBUG compile_arg #{compile_arg}"
   output = `#{compile_arg}`
   unless $?.success?
     puts "ERROR compiling #{source}"
@@ -148,6 +188,20 @@ def compile_source(source)
     raise CompilationError
   end
   executable
+end
+
+def compile_library(library_basename)
+  compiled_library_basename = library_basename.sub(/#{SOURCE_SUFFIX[LANGUAGE]}$/,  OBJECT_SUFFIX[LANGUAGE])
+  compiled_library = File.join(DIRECTORY, compiled_library_basename)
+  library = File.join(DIRECTORY, library_basename)
+  compile_arg = eval(COMPILE_LIBRARY[LANGUAGE])
+  output = `#{compile_arg}`
+  unless $?.success?
+    puts "ERROR compiling #{library}"
+    puts output
+    raise CompilationError
+  end
+  compiled_library_basename
 end
 
 def run_executable(executable)
@@ -161,9 +215,42 @@ def run_executable(executable)
   output   
 end
 
+def get_base_name(name)
+  suffix = HEADER_SUFFIX[LANGUAGE] ? "(#{HEADER_SUFFIX[LANGUAGE]}|#{SOURCE_SUFFIX[LANGUAGE]})" : "(#{SOURCE_SUFFIX[LANGUAGE]})"
+  /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
+end
+
+def edit_library(name, opts)
+  libraries = opts[:libraries]
+  headers = opts[:headers]
+  base_name = get_base_name(name)
+  if base_name
+    files = []
+    source = "#{base_name}.#{SOURCE_SUFFIX[LANGUAGE]}"
+    files << source
+    header = HEADER_SUFFIX[LANGUAGE] ? "#{base_name}.#{HEADER_SUFFIX[LANGUAGE]}" : nil
+    files << header if header
+    files.map! { |f| File.join(DIRECTORY,f) }
+    system("#{EDITOR} #{files.join(' ')}")
+    object = compile_library(source)
+    if files.inject {|m,f| m and File.exists?(f) }
+      libraries << source
+      headers << header if header
+    else
+      puts "no library created"
+    end
+  else
+    raise LibraryEditError.new("bad name: #{name}")
+  end  
+end
+
+def get_command(line)
+  /^\#(lib|help|include)(\s+([a-zA-Z0-9.]+))?\s*/.match(line) ? [$1,$3] : nil
+end
+
 # doesn't handle comments, string literals, or character literals
 def line_complete?(line)
-  /\;\s*\Z/.match(line)
+  /\;\s*\Z/.match(line) or get_command(line)
 end
 
 def puts_output(output, last_output)
@@ -176,6 +263,8 @@ end
 
 lines = []
 last_output = ''
+libraries = []
+headers = []
 loop do
   line = ''
   continued_line = false
@@ -185,15 +274,29 @@ loop do
     continued_line = true
   end
   break if line.nil?
-  begin
-    new_lines = lines.dup
-    new_lines << line
-    source = make_source(new_lines)
-    executable = compile_source(source)
-    output = run_executable(executable)
-    puts_output(output, last_output)
-    last_output = output
-    lines = new_lines
-  rescue CompilationError, ExecutionError
+  cmd,cmd_arg = get_command(line)
+  if cmd
+    case cmd
+    when 'lib'
+      edit_library(cmd_arg, :libraries => libraries, :headers => headers)
+    when 'help'
+      help
+    when 'include'
+      puts "implement me"
+    else
+      puts "Unrecognized command: #{lib}"
+    end
+  else
+    begin
+      new_lines = lines.dup
+      new_lines << line
+      source = make_source(new_lines, headers)
+      executable = compile_source(source, libraries)
+      output = run_executable(executable)
+      puts_output(output, last_output)
+      last_output = output
+      lines = new_lines
+    rescue CompilationError, ExecutionError
+    end
   end
 end
