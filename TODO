@@ -3,7 +3,7 @@
 - write a parser for comments, string literals, and character literals.  Make
   the end of line detector use this parser
 - automatically include dependencies
-- commands: #lib
+- (done) commands: #lib
 - commands: #help
 - ability to add includes, imports, link to libraries
 - generate a Makefile, Antfile
@@ -11,6 +11,8 @@
 - framework: C++: stl or boost
 - ^D causes exception when editing
 - unit tests
-- if repl restart on project, find existing libraries
+- (done) if repl restart on project, find existing libraries
 - p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
 - pf() as abbrev for printf(), PrintStream.printf(), ... 
+- (done) catch library compilation errors
+- (done) don't include headers/use libraries multiple times

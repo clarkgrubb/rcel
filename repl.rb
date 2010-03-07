@@ -97,6 +97,7 @@ RUN_EXECUTABLE[CPP] = '"#{executable}"'
 SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
 HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
 OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
+LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
 
 MAIN_TEMPLATE = {}
 
@@ -182,7 +183,7 @@ def make_source(lines, headers)
 end
 
 def compile_executable(source, libraries)
-  all_libraries = source_to_object(libraries).map { |lib| File.join(DIRECTORY, lib) }.join(' ')
+  all_libraries = source_to_object(libraries).map { |lib| File.join(DIRECTORY, lib) }.join(LIBRARY_CONNECTOR[LANGUAGE])
   executable = File.join(DIRECTORY, EXECUTABLE[LANGUAGE])
   compile_arg = eval(COMPILE_EXECUTABLE[LANGUAGE], binding)
   puts "DEBUG compile_executable: #{compile_arg}"
@@ -249,7 +250,9 @@ def edit_library(name, opts)
     object = compile_library(source)
     if files.inject {|m,f| m and File.exists?(f) }
       libraries << source
+      libraries.uniq!
       headers << header if header
+      headers.uniq!
     else
       puts "no library created"
     end
@@ -278,7 +281,11 @@ end
 lines = []
 last_output = ''
 libraries = []
+Dir.new(DIRECTORY).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[LANGUAGE]}$/) }
+puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
 headers = []
+Dir.new(DIRECTORY).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[LANGUAGE]}$/) }
+puts "Using headers: #{headers.join(' ')}" unless headers.empty?
 loop do
   line = ''
   continued_line = false
@@ -292,7 +299,10 @@ loop do
   if cmd
     case cmd
     when 'lib'
-      edit_library(cmd_arg, :libraries => libraries, :headers => headers)
+      begin
+        edit_library(cmd_arg, :libraries => libraries, :headers => headers)
+      rescue CompilationError
+      end
     when 'help'
       help
     when 'include'
