@@ -46,7 +46,7 @@ EOS
   when OBJC
     puts "implement me"
   when JAVALANG
-    puts "implmenet me"
+    puts "implement me"
   when CSHARP
     puts "implement me"
   end
@@ -60,19 +60,19 @@ GPP = `which g++`.chomp
 JAVA = `which java`.chomp
 JAVAC = `which javac`.chomp
 MONO = `which mono`.chomp
-MCS = `which mcs`.chomp
+MCS = `which gmcs`.chomp
 
 EDITOR = ENV['EDITOR'] || 'emacs'
 COMPILE_EXECUTABLE = {}
 COMPILE_EXECUTABLE[C] = '"#{GCC} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{DIRECTORY} #{File.join(DIRECTORY, SOURCE[JAVALANG])}"'
-COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
+COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} -reference:#{all_libraries} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
 COMPILE_EXECUTABLE[OBJC] = '"#{GCC} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
 COMPILE_EXECUTABLE[CPP] = '"#{GPP} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_LIBRARY = {}
 COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
 COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
-COMPILE_LIBRARY[CSHARP] = '"#{MCS} #{library}"'
+COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
 COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
 COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
 # TODO other languages
@@ -96,7 +96,7 @@ RUN_EXECUTABLE[OBJC] = '"#{executable}"'
 RUN_EXECUTABLE[CPP] = '"#{executable}"'
 SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
 HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
-OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'exe', OBJC => 'o', CPP => 'o' }
+OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
 
 MAIN_TEMPLATE = {}
 
@@ -140,6 +140,9 @@ EOS
 
 MAIN_TEMPLATE[OBJC] =<<EOS
 #import <Foundation/Foundation.h>
+<% headers.each do |header| %>
+<%= '#include "' + header + '"' %>
+<% end %>
 
 int main (int argc, const char * argv[]) {
   NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
@@ -153,6 +156,9 @@ EOS
 
 MAIN_TEMPLATE[CPP] = <<EOS
 #include <iostream>
+<% headers.each do |header| %>
+<%= '#include "' + header + '"' %>
+<% end %>
 using namespace std;
 int main() {
   <% lines.each do |line| %>
@@ -175,12 +181,11 @@ def make_source(lines, headers)
   source
 end
 
-def compile_source(source, libraries)
-  all_libraries = libraries.map { |lib| File.join(DIRECTORY, lib) }.join(' ')
-  puts "DEBUG all_libraries #{all_libraries}"
+def compile_executable(source, libraries)
+  all_libraries = source_to_object(libraries).map { |lib| File.join(DIRECTORY, lib) }.join(' ')
   executable = File.join(DIRECTORY, EXECUTABLE[LANGUAGE])
   compile_arg = eval(COMPILE_EXECUTABLE[LANGUAGE], binding)
-  puts "DEBUG compile_arg #{compile_arg}"
+  puts "DEBUG compile_executable: #{compile_arg}"
   output = `#{compile_arg}`
   unless $?.success?
     puts "ERROR compiling #{source}"
@@ -190,11 +195,20 @@ def compile_source(source, libraries)
   executable
 end
 
+def source_to_object(arg)
+  if arg.respond_to?(:map)
+    arg.map { |o| source_to_object(o) }
+  else
+    arg.sub(/#{SOURCE_SUFFIX[LANGUAGE]}$/,  OBJECT_SUFFIX[LANGUAGE])
+  end
+end
+
 def compile_library(library_basename)
-  compiled_library_basename = library_basename.sub(/#{SOURCE_SUFFIX[LANGUAGE]}$/,  OBJECT_SUFFIX[LANGUAGE])
+  compiled_library_basename = source_to_object(library_basename)
   compiled_library = File.join(DIRECTORY, compiled_library_basename)
   library = File.join(DIRECTORY, library_basename)
   compile_arg = eval(COMPILE_LIBRARY[LANGUAGE])
+  puts "DEBUG compile_library: #{compile_arg}"
   output = `#{compile_arg}`
   unless $?.success?
     puts "ERROR compiling #{library}"
@@ -291,7 +305,7 @@ loop do
       new_lines = lines.dup
       new_lines << line
       source = make_source(new_lines, headers)
-      executable = compile_source(source, libraries)
+      executable = compile_executable(source, libraries)
       output = run_executable(executable)
       puts_output(output, last_output)
       last_output = output

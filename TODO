@@ -1,5 +1,5 @@
 
-- ability to create libraries (pops into an editor) (finish this)
+- (done) ability to create libraries (pops into an editor) (finish this)
 - write a parser for comments, string literals, and character literals.  Make
   the end of line detector use this parser
 - automatically include dependencies
@@ -12,3 +12,5 @@
 - ^D causes exception when editing
 - unit tests
 - if repl restart on project, find existing libraries
+- p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
+- pf() as abbrev for printf(), PrintStream.printf(), ... 
