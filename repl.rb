@@ -105,7 +105,7 @@ MAIN_TEMPLATE[C] =<<EOS
 
 #include <stdio.h>
 <% headers.each do |header| %>
-<%= '#include "' + header + '"' %>
+<%= '#include ' + quote_header(header) %>
 <% end %>
 
 int
@@ -142,7 +142,7 @@ EOS
 MAIN_TEMPLATE[OBJC] =<<EOS
 #import <Foundation/Foundation.h>
 <% headers.each do |header| %>
-<%= '#include "' + header + '"' %>
+<%= '#include ' + quote_header(header) %>
 <% end %>
 
 int main (int argc, const char * argv[]) {
@@ -158,7 +158,7 @@ EOS
 MAIN_TEMPLATE[CPP] = <<EOS
 #include <iostream>
 <% headers.each do |header| %>
-<%= '#include "' + header + '"' %>
+<%= '#include ' + quote_header(header) %>
 <% end %>
 using namespace std;
 int main() {
@@ -168,6 +168,14 @@ int main() {
   return 0;
 }
 EOS
+
+def quote_header(header)
+  if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
+    header
+  else
+    '"' + header + '"'
+  end
+end
 
 def make_source(lines, headers)  
   stdout = $stdout
@@ -262,7 +270,15 @@ def edit_library(name, opts)
 end
 
 def get_command(line)
-  /^\#(lib|help|include)(\s+([a-zA-Z0-9.]+))?\s*/.match(line) ? [$1,$3] : nil
+  if /^\#(help)/.match(line)
+    return [$1,nil]
+  elsif /^\#(lib)\s+([a-zA-Z0-9.]+)\s*/.match(line)
+    [$1,$2]
+  elsif /^\#(include)\s+(["<][a-zA-Z0-9.]+[">])\s*/.match(line)
+    [$1,$2]
+  else
+    nil
+  end
 end
 
 # doesn't handle comments, string literals, or character literals
@@ -290,7 +306,7 @@ loop do
   line = ''
   continued_line = false
   loop do
-    line << readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ")
+    line << readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
     break if line_complete?(line)
     continued_line = true
   end
@@ -306,7 +322,17 @@ loop do
     when 'help'
       help
     when 'include'
-      puts "implement me"
+      begin
+        puts "DEBUG line #{line}"
+        puts "DEBUG cmd_arg #{cmd_arg}"
+        new_headers = headers.dup
+        new_headers << cmd_arg unless headers.include?(cmd_arg)
+        source = make_source(lines, new_headers)
+        executable = compile_executable(source, libraries)
+        headers = new_headers
+      rescue CompilationError
+        puts "failed to include #{cmd_arg}"
+      end
     else
       puts "Unrecognized command: #{lib}"
     end
