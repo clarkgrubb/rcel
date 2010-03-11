@@ -16,3 +16,4 @@
 - pf() as abbrev for printf(), PrintStream.printf(), ... 
 - (done) catch library compilation errors
 - (done) don't include headers/use libraries multiple times
+- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE

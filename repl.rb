@@ -63,12 +63,16 @@ MONO = `which mono`.chomp
 MCS = `which gmcs`.chomp
 
 EDITOR = ENV['EDITOR'] || 'emacs'
+GCC_INCLUDE = {}
+GCC_INCLUDE[C] = ''
+GCC_INCLUDE[CPP] = ''
+GCC_INCLUDE[OBJC] = ''
 COMPILE_EXECUTABLE = {}
-COMPILE_EXECUTABLE[C] = '"#{GCC} -o #{executable} #{source} #{all_libraries}"'
+COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{DIRECTORY} #{File.join(DIRECTORY, SOURCE[JAVALANG])}"'
 COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} -reference:#{all_libraries} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
-COMPILE_EXECUTABLE[OBJC] = '"#{GCC} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
-COMPILE_EXECUTABLE[CPP] = '"#{GPP} -o #{executable} #{source} #{all_libraries}"'
+COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
+COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_LIBRARY = {}
 COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
 COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
@@ -274,7 +278,7 @@ def get_command(line)
     return [$1,nil]
   elsif /^\#(lib)\s+([a-zA-Z0-9.]+)\s*/.match(line)
     [$1,$2]
-  elsif /^\#(include)\s+(["<][a-zA-Z0-9.]+[">])\s*/.match(line)
+  elsif /^\#(include)\s+(["<].+[">])\s*/.match(line)
     [$1,$2]
   else
     nil
