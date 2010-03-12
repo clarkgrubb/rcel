@@ -70,7 +70,7 @@ GCC_INCLUDE[OBJC] = ''
 COMPILE_EXECUTABLE = {}
 COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{DIRECTORY} #{File.join(DIRECTORY, SOURCE[JAVALANG])}"'
-COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} -reference:#{all_libraries} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
+COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{all_libraries.empty? ? \'\': \'-reference:\'}#{all_libraries} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
 COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
 COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
 COMPILE_LIBRARY = {}
@@ -304,7 +304,7 @@ libraries = []
 Dir.new(DIRECTORY).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[LANGUAGE]}$/) }
 puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
 headers = []
-Dir.new(DIRECTORY).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[LANGUAGE]}$/) }
+Dir.new(DIRECTORY).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[LANGUAGE]}$/) } if HEADER_SUFFIX[LANGUAGE]
 puts "Using headers: #{headers.join(' ')}" unless headers.empty?
 loop do
   line = ''
