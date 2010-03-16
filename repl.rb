@@ -3,9 +3,12 @@
 require 'fileutils'
 require 'erb'
 require 'readline'
+require File.dirname(__FILE__) + '/clex.rb'
+require 'pp'
 
 include Readline
 
+class ParseError < StandardError; end
 class CompilationError < StandardError; end
 class ExecutionError < StandardError; end
 class LibraryEditError < StandardError; end
@@ -102,6 +105,7 @@ SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP
 HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
 OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
 LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
+CLEX_LANGUAGE = { C => :c, JAVALANG => :java, CSHARP => :csharp, OBJC => :objective_c, CPP => :cpp }
 
 MAIN_TEMPLATE = {}
 
@@ -285,9 +289,31 @@ def get_command(line)
   end
 end
 
-# doesn't handle comments, string literals, or character literals
+def braces_balanced?(tokens)
+  cnt = 0;
+  tokens.each do |token, value|
+    if :punctuator == token
+      case value
+      when '{'
+        cnt += 1
+      when '}'
+        cnt -= 1
+      else
+      end
+    end
+    raise ParseError.new("close brace without a preceding open brace") if cnt < 0
+  end
+  0 == cnt
+end
+
 def line_complete?(line)
-  /\;\s*\Z/.match(line) or get_command(line)
+  tokens = $clex.stream(line)
+  if tokens.size > 1 and braces_balanced?(tokens)
+    ult = tokens.pop
+    penult = tokens.pop
+    return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
+  end
+  get_command(line)
 end
 
 def puts_output(output, last_output)
@@ -298,6 +324,7 @@ def puts_output(output, last_output)
   end
 end
 
+$clex = Clex.new(CLEX_LANGUAGE[LANGUAGE])
 lines = []
 last_output = ''
 libraries = []
@@ -310,7 +337,12 @@ loop do
   line = ''
   continued_line = false
   loop do
-    line << readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
+    part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
+    if part.nil?
+      puts
+      exit
+    end
+    line << part
     break if line_complete?(line)
     continued_line = true
   end

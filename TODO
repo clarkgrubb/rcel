@@ -1,6 +1,6 @@
 
 - (done) ability to create libraries (pops into an editor) (finish this)
-- write a parser for comments, string literals, and character literals.  Make
+- (done) write a parser for comments, string literals, and character literals.  Make
   the end of line detector use this parser
 - automatically include dependencies
 - (done) commands: #lib
@@ -9,7 +9,7 @@
 - generate a Makefile, Antfile
 - change executable name to dirname
 - framework: C++: stl or boost
-- ^D causes exception when editing
+- (fixed) ^D causes exception when editing
 - unit tests
 - (done) if repl restart on project, find existing libraries
 - p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
