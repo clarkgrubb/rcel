@@ -112,9 +112,22 @@ MAIN_TEMPLATE = {}
 MAIN_TEMPLATE[C] =<<EOS
 
 #include <stdio.h>
+#include <stdarg.h>
 <% headers.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
+
+void
+p(char *msg) {
+  puts(msg);
+}
+
+void
+pf(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+}
 
 int
 main (int argc, char **argv) {
@@ -129,6 +142,10 @@ MAIN_TEMPLATE[JAVALANG] =<<EOS
 
 public class Main {
 
+  public static void p(String msg) {
+    System.out.println(msg);
+  }
+
   public static void main(String[] args) {
     <% lines.each do |line| %>
     <%= line %>
@@ -139,6 +156,10 @@ EOS
 
 MAIN_TEMPLATE[CSHARP] =<<EOS
 public class Top {
+  public static void p(System.String msg) {
+    System.Console.WriteLine(msg);
+  }
+
   public static void Main() {
     <% lines.each do |line| %>
     <%= line %>
@@ -152,6 +173,18 @@ MAIN_TEMPLATE[OBJC] =<<EOS
 <% headers.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
+
+void
+p(char *msg) {
+  puts(msg);
+}
+
+void
+pf(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+}
 
 int main (int argc, const char * argv[]) {
   NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
@@ -169,6 +202,19 @@ MAIN_TEMPLATE[CPP] = <<EOS
 <%= '#include ' + quote_header(header) %>
 <% end %>
 using namespace std;
+
+void
+p(const char *msg) {
+  puts(msg);
+}
+
+void
+pf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+}
+
 int main() {
   <% lines.each do |line| %>
   <%= line %>

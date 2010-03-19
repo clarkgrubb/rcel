@@ -12,8 +12,9 @@
 - (fixed) ^D causes exception when editing
 - unit tests
 - (done) if repl restart on project, find existing libraries
-- p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
-- pf() as abbrev for printf(), PrintStream.printf(), ... 
+- (done) p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
+- (done) pf() as abbrev for printf(), PrintStream.printf(), ... 
+- implement pf for java and c#, it it is possible...
 - (done) catch library compilation errors
 - (done) don't include headers/use libraries multiple times
 - in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
