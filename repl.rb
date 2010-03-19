@@ -140,11 +140,19 @@ EOS
 
 MAIN_TEMPLATE[JAVALANG] =<<EOS
 
+import static java.lang.System.out;
+
 public class Main {
 
   public static void p(String msg) {
     System.out.println(msg);
   }
+
+  <% (1..5).each do |args| %>
+  public static void pf(String fmt, <%= (1..args).map { |i| 'Object o' + i.to_s }.join(', ') %>) {
+    System.out.printf(fmt, <%= (1..args).map { |i| 'o' + i.to_s }.join(', ') %>);
+  }
+  <% end %>
 
   public static void main(String[] args) {
     <% lines.each do |line| %>
@@ -158,6 +166,10 @@ MAIN_TEMPLATE[CSHARP] =<<EOS
 public class Top {
   public static void p(System.String msg) {
     System.Console.WriteLine(msg);
+  }
+
+  public static void pf(System.String fmt, params object[] list) {
+    System.Console.WriteLine(string.Format(fmt, list));
   }
 
   public static void Main() {
