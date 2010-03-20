@@ -1,68 +1,131 @@
+# coding: utf-8
 
 class Clex
 
-  REGEX_IDENTIFIER = '[a-zA-Z][a-zA-Z0-9_]*'
-  REGEX_TRIGRAPH = '<<=|>>='
-  REGEX_DIGRAPH = '\\+\\+|--|[+-\\/%!=<>^|&]=|\\*=|&&|\\|\\||->|::'
-  REGEX_INTEGER = '(?:[1-9][0-9]*|0[0-7]+|0[xX][a-fA-F0-9]+|0)(?:u|U|l|L|ll|LL)?'
-  REGEX_FLOAT = '(?:[0-9]*\.[0-9]+|[0-9]+\.)(?:[eE][+-]?[0-9]+)?[fFlL]?'
-  REGEX_HEX_FLOAT = '0[xX](?:[0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.)(?:[pP][+-]?[0-9]+)?[fFlL]?'
-  
-  KEYWORDS = %w( auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Bool _Complex _Imaginary )
+  def alternation_regex(a)
+    a.map { |t| t.gsub(/([*+?|\/\\^])/,'\\\\\1') }.join('|')
+  end
+
+  QUADGRAPHS_C99 = ['%:%:']
+  TRIGRAPHS_C99 = ['<<=', '>>=', '...']
+  DIGRAPHS_C99 = ['++', '--', '&&', '||', '->', '::', '<:', ':>', '<%', '%>', '##']
+  '+-\\/%!-<>^|&*='.split('').each { |c| DIGRAPHS_C99 << "#{c}=" }
+  MONOGRAPHS_C99 = '[](){}.&*+-~!/%<>^|?:;=,'.split('')
+  REGEX_IDENTIFIER_C99 = '[a-zA-Z][a-zA-Z0-9_]*'
+  REGEX_INTEGER_C99 = '(?:[1-9][0-9]*|0[0-7]+|0[xX][a-fA-F0-9]+|0)(?:u|U|l|L|ll|LL)?'
+  REGEX_FLOAT_C99 = '(?:[0-9]*\.[0-9]+|[0-9]+\.)(?:[eE][+-]?[0-9]+)?[fFlL]?'
+  REGEX_HEX_FLOAT_C99 = '0[xX](?:[0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.)(?:[pP][+-]?[0-9]+)?[fFlL]?'
+  KEYWORDS_C99 = %w( auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Bool _Complex _Imaginary )
+  UNIQUE_TOKENS_C99 = {}
+
+  QUADGRAPHS_JAVA5 = [ '>>>=' ]
+  TRIGRAPHS_JAVA5 = [ '>>>', '<<=', '>>=' ]
+  DIGRAPHS_JAVA5 = [ '==', '<=', '>=', '!=', '&&', '||',
+                     '++', '--', '<<', '>>', '+=', '-=',
+                     '*=', '/=', '&=', '|=', '^=', '%=' ]
+  MONOGRAPHS_JAVA5 = '(){}[];,.=><!~?:+-*/&|^%'.split('')
+  REGEX_IDENTIFIER_JAVA5 = RUBY_VERSION.match(/^1\.8/) ? '[a-zA-Z_$][a-zA-Z0-9_$]*' : '[\p{Alpha}_$][\p{Alnum}_$]*'
+  REGEX_INTEGER_JAVA5 = '(?:[1-9][0-9]*|0[0-7]+|0[xX][a-fA-F0-9]+|0)(?:l|L)?'
+  REGEX_FLOAT_JAVA5 = '((?:[0-9]*\.[0-9]+|[0-9]+\.)(?:[eE][+-]?[0-9]+)?[fFdD]?|[0-9]+(?:[eE][+-]?[0-9]+)[fFdD]?|[0-9]+(?:[eE][+-]?[0-9]+)?[fFdD])'
+  REGEX_HEX_FLOAT_JAVA5 = '0[xX](?:[0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.?)(?:[pP][+-]?[0-9]+)[fFdD]?'
+  KEYWORDS_JAVA5 = %w( abstract assert boolean break byte case catch char class const default do double else enum extends final finally float if goto implements import instanceof int interface long native package private protected public short static strictfp super switch synchronized this throw throws transient try void volatile while )
+  UNIQUE_TOKENS_JAVA5 = { 'true' => :true, 'false' => :false, 'null' => :null }
   
   def initialize(language)
-    @regex_identifier = REGEX_IDENTIFIER
-    @regex_integer = REGEX_INTEGER
-    @regex_float = REGEX_FLOAT
-    @regex_hex_float = REGEX_HEX_FLOAT
-    @regex_trigraph = REGEX_TRIGRAPH
-    @regex_digraph = REGEX_DIGRAPH
-    @keywords = KEYWORDS
-    case language
-    when :c
-    when :cpp
-    when :objective_c
-    when :java
-    when :csharp
+    @language = language
+    @regex_identifier = REGEX_IDENTIFIER_C99
+    @regex_integer = REGEX_INTEGER_C99
+    @regex_float = REGEX_FLOAT_C99
+    @regex_hex_float = REGEX_HEX_FLOAT_C99
+    @punctuators = {}
+    @punctuators[4] = QUADGRAPHS_C99
+    @punctuators[3] = TRIGRAPHS_C99
+    @punctuators[2] = DIGRAPHS_C99
+    @punctuators[1] = MONOGRAPHS_C99
+    @keywords = KEYWORDS_C99
+    @unique_tokens = UNIQUE_TOKENS_C99
+    case @language
+    when :c, :cpp, :objective_c
+    when :java, :csharp
+      @punctuators[4] = QUADGRAPHS_JAVA5
+      @punctuators[3] = TRIGRAPHS_JAVA5
+      @punctuators[2] = DIGRAPHS_JAVA5
+      @punctuators[1] = MONOGRAPHS_JAVA5
+      @regex_identifier = REGEX_IDENTIFIER_JAVA5
+      @regex_integer = REGEX_INTEGER_JAVA5
+      @regex_float = REGEX_FLOAT_JAVA5
+      @regex_hex_float = REGEX_HEX_FLOAT_JAVA5
+      @keywords = KEYWORDS_JAVA5
+      @unique_tokens = UNIQUE_TOKENS_JAVA5
     else
-      raise "unsupported language: #{language}"
+      raise "unsupported language: #{@language}"
     end
   end
 
-  def lex_char(input)
-    if /\A([^'\\\n]*')/.match(input) # end of char
+  def lex_char_c99(input)
+    case input
+    when /\A([^'\\\n]*')/ # end of char
       return :char, $1, $'
-    elsif /\A([^'\\\n]*\\['"?\\abfnrtv])/.match(input) # backslash escape
+    when /\A([^'\\\n]*\\['"?\\abfnrtv])/ # backslash escape
       old_value = $1
       token, value, rest = lex_char($')
       return token, value, input if [:error, :open].include?(token)
       return token, old_value + value, rest
-    elsif /\A([^'\\\n]*\\[0-7]{1,3})/.match(input) # octal escape
+    when /\A([^'\\\n]*\\[0-7]{1,3})/ # octal escape
       old_value = $1
       token, value, rest = lex_char($')
       return token, value, input if [:error, :open].include?(token)
       return token, old_value + value, rest
-    elsif /\A([^'\\\n]*\\x[0-9a-fA-F])/.match(input) # hex escape
+    when /\A([^'\\\n]*\\x[0-9a-fA-F])/ # hex escape
       old_value = $1
       token, value, rest = lex_char($')
       return token, value, input if [:error, :open].include?(token)
       return token, old_value + value, rest
-    elsif /\A[^'\\\n]*(?:\\|\n)/.match(input) # lex error
+    when /\A[^'\\\n]*(?:\\|\n)/ # lex error
       return :error, nil, input
     else # open char
       return :open, nil, input
     end
   end
+  private :lex_char_c99
+  
+  def lex_char_java5(input)
+    case input
+    when /\A([^\\\n\r]')/ # 'a'
+      return :char, $1, $'
+    when /\A(\\[btnfr"'\\]')/ # '\n'
+      return :char, $1, $'
+    when /\A(\\[0-3]?[0-7]?[0-7]')/  # '\042'
+      return :char, $1, $'
+    when /\A(\\u[0-9a-fA-F]{4}')/ # '\uFFFF'
+      return :char, $1, $'
+    when /\A../m
+      return :error, nil, input
+    else
+      return :open, nil, input
+    end
+  end
+  private :lex_char_java5
+  
+  def lex_char(input)
+    case @language
+    when :java
+      lex_char_java5(input)
+    else
+      lex_char_c99(input)
+    end
+  end
   private :lex_char
   
   def lex_string(input)
-    if /\A([^"\n\\]*")/.match(input) # end of string
+    case input
+    when /\A([^"\n\r\\]*")/ # end of string
       return :string, $1, $'
-    elsif /\A([^"\n\\]*\\.)/.match(input)  # escaped character
+    when /\A([^"\n\r\\]*\\.)/  # escaped character
       old_value = $1
       token, value, rest = lex_string($')
       return token, old_value + value, rest
-    elsif /\A[^"\n\\]*\n/.match(input) # lex error
+    when /\A[^"\n\\]*\n/ # lex error
       return :error, nil, input
     else # open string
       return :open, nil, input
@@ -74,19 +137,20 @@ class Clex
   # with token type :comment
   #
   def lex_comment(input)
-    if /\A\s*\/\//.match(input) # single line comment //
+    case input
+    when /\A\s*\/\// # single line comment //
       if /\A\s*(\/\/.*?\n)/.match(input)
         return :comment, $1, $'
       else
         return :open, '//', input
       end
-    elsif /\A\s*\/\*/m.match(input) # multi-line comment /* */
+    when /\A\s*\/\*/m # multi-line comment /* */
       if /\A\s*(\/\*.*?\*\/)/m.match(input)
         return :comment, $1, $'
       else
         return :open, '/*', input
       end
-    elsif /\A\s*"/.match(input) # double quoted string " "
+    when /\A\s*"/ # double quoted string " "
       token, value, rest = lex_string($')
       if :open == token
         return :open, '"', input
@@ -95,7 +159,7 @@ class Clex
       else
         return :string, '"' + value, rest
       end
-    elsif /\A\s*'/.match(input) # char literal ' '
+    when /\A\s*'/ # char literal ' '
       token, value, rest = lex_char($')
       if :open == token
         return :open, "'", input
@@ -104,29 +168,44 @@ class Clex
       else
         return :char, "'" + value, rest
       end
-    elsif /\A\s*(#{@regex_identifier})/.match(input) # identifier
+    when /\A\s*(#{@regex_identifier})/
       value, rest = $1, $'
       if @keywords.include?(value)
         return :keyword, value, rest
+      elsif @unique_tokens.has_key?(value)
+        return @unique_tokens[value], value, rest
       else
         return :identifier, value, rest
       end
-    elsif /\A\s*(#{@regex_float})/.match(input) # float
+    when /\A\s*(#{@regex_float})/
       return :float, $1, $'
-    elsif /\A\s*(#{@regex_hex_float})/.match(input) # hex float
+    when /\A\s*(#{@regex_hex_float})/
       return :float, $1, $'
-    elsif /\A\s*(#{@regex_integer})/.match(input) # integer
+    when /\A\s*(#{@regex_integer})/
       return :integer, $1, $'
-    elsif /\A\s*(#{@regex_trigraph})/.match(input) # trigraphs
-      return :punctuator, $1, $'
-    elsif /\A\s*(#{@regex_digraph})/.match(input) # digraphs
-      return :punctuator, $1, $'
-    elsif /\A\s*(\S)/.match(input) # any other single character token
-      return :punctuator, $1, $'
+    when /\A\s*(\S.*)\z/m
+      val, rest = lex_punctuator($1)
+      if val
+        return :punctuator, val, rest
+      else
+        return :error, nil, input
+      end
     else
-      return :end, 
+      return :end
     end
   end
+
+  def lex_punctuator(input)
+    start = [input.size,4].min
+    start.downto(1) do |i|
+      val = input[0,i]
+      if @punctuators[i].include?(val)
+        return val, input[i,(input.length-i)]
+      end
+    end
+    return nil
+  end
+  private :lex_punctuator
   
   # Returns three args: token_type, value, rest
   #
