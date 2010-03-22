@@ -148,6 +148,9 @@ public class Main {
     System.out.println(msg);
   }
 
+  public static void pf(String fmt) {
+    System.out.printf(fmt);
+  }
   <% (1..5).each do |args| %>
   public static void pf(String fmt, <%= (1..args).map { |i| 'Object o' + i.to_s }.join(', ') %>) {
     System.out.printf(fmt, <%= (1..args).map { |i| 'o' + i.to_s }.join(', ') %>);
