@@ -21,7 +21,7 @@ CPP = 'c++'
 LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
 
 def usage
-  puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: repl.rb LANGUAGE PROJECT_DIR"
+  puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: crepl.rb LANGUAGE PROJECT_DIR"
   exit -1
 end
 usage unless ARGV.length == 2
@@ -396,16 +396,21 @@ Dir.new(DIRECTORY).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[LANGUAGE]
 puts "Using headers: #{headers.join(' ')}" unless headers.empty?
 loop do
   line = ''
-  continued_line = false
-  loop do
-    part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
-    if part.nil?
-      puts
-      exit
+  begin
+    continued_line = false
+    loop do
+      part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
+      if part.nil?
+        puts
+        exit
+      end
+      line << part
+      break if line_complete?(line)
+      continued_line = true
     end
-    line << part
-    break if line_complete?(line)
-    continued_line = true
+  rescue ParseError
+    puts "clex reports that input doesn't lex: #{$!.message}"
+    next
   end
   break if line.nil?
   cmd,cmd_arg = get_command(line)
