@@ -18,6 +18,12 @@ class Clex
   KEYWORDS_C99 = %w( auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Bool _Complex _Imaginary )
   UNIQUE_TOKENS_C99 = {}
 
+  KEYWORDS_OBJC2 = KEYWORDS_C99.dup
+  KEYWORDS_OBJC2.concat(%w( bycopy byref in inout oneway out self super ))
+  DIRECTIVES_OBJC2 = %w( @class @defs @dynamic @encode @end @implementation @interface @private @protected @public @property @protocol @selector @synchronized @synthesize @try @catch @finally @throw )
+  a = %w( __cmd __func__ BOOL Class id IMP nil Nil NO NSObject Protocol SEL self super YES )
+  h = {}; a.each { |k| h[k] = k.to_sym }; UNIQUE_TOKENS_OBJC2 = h
+  
   QUADGRAPHS_JAVA5 = [ '>>>=' ]
   TRIGRAPHS_JAVA5 = [ '>>>', '<<=', '>>=' ]
   DIGRAPHS_JAVA5 = [ '==', '<=', '>=', '!=', '&&', '||',
@@ -45,7 +51,12 @@ class Clex
     @keywords = KEYWORDS_C99
     @unique_tokens = UNIQUE_TOKENS_C99
     case @language
-    when :c, :cpp, :objective_c
+    when :c, :cpp
+    when :objective_c
+      @keywords = []
+      @keywords.concat(KEYWORDS_OBJC2)
+      @keywords.concat(DIRECTIVES_OBJC2)
+      @unique_tokens = UNIQUE_TOKENS_OBJC2
     when :java, :csharp
       @punctuators[4] = QUADGRAPHS_JAVA5
       @punctuators[3] = TRIGRAPHS_JAVA5
@@ -132,7 +143,7 @@ class Clex
     end
   end
   private :lex_string
-  
+
   # works the same as lex, except that comments are returned
   # with token type :comment
   #
@@ -149,6 +160,19 @@ class Clex
         return :comment, $1, $'
       else
         return :open, '/*', input
+      end
+    when /\A\s*@"/ # objective C string
+      if :objective_c == @language
+        token, value, rest = lex_string($')
+        if :open == token
+          return :open, '@"', input
+        elsif :error == token
+          return :error, nil, input
+        else
+          return :string, '@"' + value, rest
+        end
+      else
+        return :error, nil, input
       end
     when /\A\s*"/ # double quoted string " "
       token, value, rest = lex_string($')
@@ -167,6 +191,13 @@ class Clex
         return :error, nil, input
       else
         return :char, "'" + value, rest
+      end
+    when /\A\s*(@#{@regex_identifier})/ # objective c directive
+      value, rest = $1, $1
+      if @keywords.include?(value)
+        return :keyword, value, rest
+      else
+        return :error, nil, input
       end
     when /\A\s*(#{@regex_identifier})/
       value, rest = $1, $'
