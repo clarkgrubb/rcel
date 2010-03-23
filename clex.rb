@@ -193,7 +193,7 @@ class Clex
         return :char, "'" + value, rest
       end
     when /\A\s*(@#{@regex_identifier})/ # objective c directive
-      value, rest = $1, $1
+      value, rest = $1, $'
       if @keywords.include?(value)
         return :keyword, value, rest
       else
@@ -279,9 +279,11 @@ class Clex
     rest = input
     a = []
     loop do
-      token, value, rest = lex(rest)
+      token, value, new_rest = lex(rest)
       a << [token, value]
-      break if [:end, :open].include?(token)
+      break if [:end, :open, :error].include?(token)
+      raise "software errror: infinite loop on input: #{rest}" if new_rest == rest
+      rest = new_rest
     end
     a
   end
