@@ -135,6 +135,7 @@ class Clex
     when /\A([^"\n\r\\]*\\.)/  # escaped character
       old_value = $1
       token, value, rest = lex_string($')
+      return token, '"', input if [:error, :open].include?(token)
       return token, old_value + value, rest
     when /\A[^"\n\\]*\n/ # lex error
       return :error, nil, input
