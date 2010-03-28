@@ -6,7 +6,7 @@
 - (done) commands: #lib
 - commands: #help
 - ability to specify libraries
-- automatically put each line in one of three places: (1) outside of any class
+- (done) automatically put each line in one of three places: (1) outside of any class
   and main definition, (2) outside main definition but inside class definition, and
   (3) inside main definition.  #include, #import, import, using go in (1).  Java enum
   declaration goes in (2).  Everything else goes in (3)
@@ -24,7 +24,8 @@
 - (done) don't include headers/use libraries multiple times
 - in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
-- don't require directory to be specified at startup: use a default value
+- (done) don't require directory to be specified at startup: use a default value
 - ability to reload lines from previous session
-- ability to display and edit lines
+- (done) ability to display and edit lines
+- (done) if all lines deleted, flush output
 - package as a ruby gem

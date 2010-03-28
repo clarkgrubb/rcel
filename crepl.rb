@@ -367,6 +367,10 @@ EOS
       [$1,$2]
     elsif /^\#(include)\s+(["<].+[">])\s*/.match(line)
       [$1,$2]
+    elsif /^\#(list)/.match(line)
+      [$1,nil]
+    elsif /^\#(delete)\s+(\d+)/.match(line)
+      [$1,$2.to_i]
     else
       nil
     end
@@ -430,7 +434,7 @@ EOS
         raise "neither argument is a supported language"
       end
     when 1
-      if LANGUAGES.include?(arg[0].downcase)
+      if LANGUAGES.include?(args[0].downcase)
         @language = args[0].downcase
       else
         @directory = args[0]
@@ -485,7 +489,33 @@ EOS
         @main_lines << line
       end
     end
-    
+
+    def list
+      lineno = 1
+      [@header_lines, @class_lines, @main_lines].each do |a|
+        a.each do |ll|
+          ll.split("\n").each_with_index do |l,i|
+            if 0 == i
+              puts "%03d> %s" % [ lineno, l]
+            else
+              puts "...> %s" % l
+            end
+            lineno += 1
+          end
+        end
+      end
+    end
+
+    def delete(lineno)
+      raise "line number must be positive" if lineno <= 0
+      [@header_lines, @class_lines, @main_lines].each do |a|
+        if lineno <= a.size
+          a.delete_at(lineno-1)
+          return
+        end
+        lineno -= a.size
+      end
+    end
   end
   
   def repl(opts = {})
@@ -547,6 +577,15 @@ EOS
           rescue CompilationError
             @out.puts "failed to include #{cmd_arg}"
           end
+        when 'list'
+          lines.list
+        when 'delete'
+          begin
+            lines.delete(cmd_arg)
+            last_output = '' if 0 == lines.size
+          rescue
+            @out.puts "couldn't delete line #{cmd_arg}: #{$!.message}"
+          end
         else
           @out.puts "Unrecognized command: #{lib}"
         end
@@ -571,6 +610,6 @@ if $0 == __FILE__
   crepl = Crepl.new(ARGV)
   crepl.language = crepl.prompt_for_language unless crepl.language
   crepl.directory = "#{crepl.language}-project" unless crepl.directory
-  puts "Working in #{@directory} using language #{@language}"
+  puts "Working in #{crepl.directory} using language #{crepl.language}"
   crepl.repl
 end
