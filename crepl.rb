@@ -488,7 +488,7 @@ EOS
         case cmd
         when 'lib'
           begin
-            edit_library(cmd_arg, :libraries => libraries, :headers => headers)
+            edit_library(cmd_arg, :libraries => libraries, :headers => lines.header_lines)
           rescue CompilationError
           end
         when 'help'
