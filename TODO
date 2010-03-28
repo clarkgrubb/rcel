@@ -5,17 +5,26 @@
 - automatically include dependencies
 - (done) commands: #lib
 - commands: #help
-- ability to add includes, imports, link to libraries
+- ability to specify libraries
+- automatically put each line in one of three places: (1) outside of any class
+  and main definition, (2) outside main definition but inside class definition, and
+  (3) inside main definition.  #include, #import, import, using go in (1).  Java enum
+  declaration goes in (2).  Everything else goes in (3)
 - generate a Makefile, Antfile
 - change executable name to dirname
 - framework: C++: stl or boost
+- for C#, link regex ddl
 - (fixed) ^D causes exception when editing
-- unit tests
+- (done) unit tests
 - (done) if repl restart on project, find existing libraries
 - (done) p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
 - (done) pf() as abbrev for printf(), PrintStream.printf(), ... 
-- implement pf for java and c#, it it is possible...
+- (done) implement pf for java and c#, it it is possible...
 - (done) catch library compilation errors
 - (done) don't include headers/use libraries multiple times
 - in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
+- don't require directory to be specified at startup: use a default value
+- ability to reload lines from previous session
+- ability to display and edit lines
+- package as a ruby gem

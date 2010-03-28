@@ -6,110 +6,100 @@ require 'readline'
 require File.dirname(__FILE__) + '/clex.rb'
 require 'pp'
 
-include Readline
+class Crepl
+  
+  include Readline
 
-class ParseError < StandardError; end
-class CompilationError < StandardError; end
-class ExecutionError < StandardError; end
-class LibraryEditError < StandardError; end
+  attr_accessor :language, :directory
+  
+  class ParseError < StandardError; end
+  class CompilationError < StandardError; end
+  class ExecutionError < StandardError; end
+  class LibraryEditError < StandardError; end
+  
+  C = 'c'
+  CSHARP = 'c#'
+  JAVALANG = 'java'
+  OBJC = 'objective-c'
+  CPP = 'c++'
+  LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
+  
+  def usage
+    puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: crepl.rb LANGUAGE PROJECT_DIR"
+    exit -1
+  end
 
-C = 'c'
-CSHARP = 'c#'
-JAVALANG = 'java'
-OBJC = 'objective-c'
-CPP = 'c++'
-LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
-
-def usage
-  puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: crepl.rb LANGUAGE PROJECT_DIR"
-  exit -1
-end
-usage unless ARGV.length == 2
-if LANGUAGES.include?(ARGV[0].downcase)
-  LANGUAGE = ARGV[0].downcase
-  DIRECTORY = ARGV[1]
-elsif LANGUAGES.include?(ARGV[1].downcase)
-  LANGUAGE = ARGV[1].downcase
-  DIRECTORY = ARGV[0]
-else
-  usage
-end
-FileUtils.mkdir_p DIRECTORY
-
-def help
-  case LANGUAGE
-  when C
-    puts <<EOS
+  def help
+    case @language
+    when C
+      @out.puts <<EOS
 #help: display this menu
 #lib <LIBRARY_NAME>: to edit library
 #include <HEADER>: to include header
 EOS
-  when CPP
-    puts "implement me"
-  when OBJC
-    puts "implement me"
-  when JAVALANG
-    puts "implement me"
-  when CSHARP
-    puts "implement me"
+    when CPP
+      @out.puts "implement me"
+    when OBJC
+      @out.puts "implement me"
+    when JAVALANG
+      @out.puts "implement me"
+    when CSHARP
+      @out.puts "implement me"
+    end
   end
-end
 
-help
-puts "Working in #{DIRECTORY} using language #{LANGUAGE}"
+  GCC = `which gcc`.chomp
+  GPP = `which g++`.chomp
+  JAVA = `which java`.chomp
+  JAVAC = `which javac`.chomp
+  MONO = `which mono`.chomp
+  MCS = `which gmcs`.chomp
 
-GCC = `which gcc`.chomp
-GPP = `which g++`.chomp
-JAVA = `which java`.chomp
-JAVAC = `which javac`.chomp
-MONO = `which mono`.chomp
-MCS = `which gmcs`.chomp
+  EDITOR = ENV['EDITOR'] || 'emacs'
+  GCC_INCLUDE = {}
+  GCC_INCLUDE[C] = ''
+  GCC_INCLUDE[CPP] = ''
+  GCC_INCLUDE[OBJC] = ''
+  COMPILE_EXECUTABLE = {}
+  COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
+  COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{File.join(@directory, SOURCE[JAVALANG])}"'
+  COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{all_libraries.empty? ? \'\': \'-reference:\'}#{all_libraries} #{File.join(@directory, SOURCE[CSHARP])}"'
+  COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[@language]} -framework Foundation #{File.join(@directory, SOURCE[OBJC])} -o #{File.join(@directory, EXECUTABLE[OBJC])} #{all_libraries}"'
+  COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
+  COMPILE_LIBRARY = {}
+  COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
+  COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
+  COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
+  COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
+  COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
+  # TODO other languages
+  EXECUTABLE = {}
+  EXECUTABLE[C] = 'main'
+  EXECUTABLE[JAVALANG] = 'Main'
+  EXECUTABLE[CSHARP] = 'Top.exe'
+  EXECUTABLE[OBJC] = 'main'
+  EXECUTABLE[CPP] = 'main'
+  SOURCE = {}
+  SOURCE[C] = 'main.c'
+  SOURCE[JAVALANG] = 'Main.java'
+  SOURCE[CSHARP] = 'Top.cs'
+  SOURCE[OBJC] = 'main.m'
+  SOURCE[CPP] = 'main.cpp'
+  RUN_EXECUTABLE = {}
+  RUN_EXECUTABLE[C] = '"#{executable}"'
+  RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{@directory} #{EXECUTABLE[JAVALANG]}"'
+  RUN_EXECUTABLE[CSHARP] = '"#{MONO} #{File.join(@directory, EXECUTABLE[CSHARP])}"'
+  RUN_EXECUTABLE[OBJC] = '"#{executable}"'
+  RUN_EXECUTABLE[CPP] = '"#{executable}"'
+  SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
+  HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
+  OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
+  LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
+  CLEX_LANGUAGE = { C => :c, JAVALANG => :java, CSHARP => :csharp, OBJC => :objective_c, CPP => :cpp }
 
-EDITOR = ENV['EDITOR'] || 'emacs'
-GCC_INCLUDE = {}
-GCC_INCLUDE[C] = ''
-GCC_INCLUDE[CPP] = ''
-GCC_INCLUDE[OBJC] = ''
-COMPILE_EXECUTABLE = {}
-COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
-COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{DIRECTORY} #{File.join(DIRECTORY, SOURCE[JAVALANG])}"'
-COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{all_libraries.empty? ? \'\': \'-reference:\'}#{all_libraries} #{File.join(DIRECTORY, SOURCE[CSHARP])}"'
-COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[LANGUAGE]} -framework Foundation #{File.join(DIRECTORY, SOURCE[OBJC])} -o #{File.join(DIRECTORY, EXECUTABLE[OBJC])} #{all_libraries}"'
-COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[LANGUAGE]} -o #{executable} #{source} #{all_libraries}"'
-COMPILE_LIBRARY = {}
-COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
-COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
-COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
-COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
-COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
-# TODO other languages
-EXECUTABLE = {}
-EXECUTABLE[C] = 'main'
-EXECUTABLE[JAVALANG] = 'Main'
-EXECUTABLE[CSHARP] = 'Top.exe'
-EXECUTABLE[OBJC] = 'main'
-EXECUTABLE[CPP] = 'main'
-SOURCE = {}
-SOURCE[C] = 'main.c'
-SOURCE[JAVALANG] = 'Main.java'
-SOURCE[CSHARP] = 'Top.cs'
-SOURCE[OBJC] = 'main.m'
-SOURCE[CPP] = 'main.cpp'
-RUN_EXECUTABLE = {}
-RUN_EXECUTABLE[C] = '"#{executable}"'
-RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{DIRECTORY} #{EXECUTABLE[JAVALANG]}"'
-RUN_EXECUTABLE[CSHARP] = '"#{MONO} #{File.join(DIRECTORY, EXECUTABLE[CSHARP])}"'
-RUN_EXECUTABLE[OBJC] = '"#{executable}"'
-RUN_EXECUTABLE[CPP] = '"#{executable}"'
-SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
-HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
-OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
-LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
-CLEX_LANGUAGE = { C => :c, JAVALANG => :java, CSHARP => :csharp, OBJC => :objective_c, CPP => :cpp }
+  MAIN_TEMPLATE = {}
 
-MAIN_TEMPLATE = {}
-
-MAIN_TEMPLATE[C] =<<EOS
+  MAIN_TEMPLATE[C] =<<EOS
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -138,7 +128,7 @@ main (int argc, char **argv) {
 }
 EOS
 
-MAIN_TEMPLATE[JAVALANG] =<<EOS
+  MAIN_TEMPLATE[JAVALANG] =<<EOS
 
 import static java.lang.System.out;
 
@@ -165,7 +155,7 @@ public class Main {
 }
 EOS
 
-MAIN_TEMPLATE[CSHARP] =<<EOS
+  MAIN_TEMPLATE[CSHARP] =<<EOS
 public class Top {
   public static void p(System.String msg) {
     System.Console.WriteLine(msg);
@@ -183,7 +173,7 @@ public class Top {
 }
 EOS
 
-MAIN_TEMPLATE[OBJC] =<<EOS
+  MAIN_TEMPLATE[OBJC] =<<EOS
 #import <Foundation/Foundation.h>
 <% headers.each do |header| %>
 <%= '#include ' + quote_header(header) %>
@@ -211,7 +201,7 @@ int main (int argc, const char * argv[]) {
 }
 EOS
 
-MAIN_TEMPLATE[CPP] = <<EOS
+  MAIN_TEMPLATE[CPP] = <<EOS
 #include <iostream>
 <% headers.each do |header| %>
 <%= '#include ' + quote_header(header) %>
@@ -238,217 +228,272 @@ int main() {
 }
 EOS
 
-def quote_header(header)
-  if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
-    header
-  else
-    '"' + header + '"'
-  end
-end
-
-def make_source(lines, headers)  
-  stdout = $stdout
-  source = File.join(DIRECTORY,SOURCE[LANGUAGE])
-  begin
-    $stdout = File.open(source,'w')
-    ERB.new(MAIN_TEMPLATE[LANGUAGE]).run(binding)
-    $stdout.flush
-  ensure
-    $stdout = stdout
-  end
-  source
-end
-
-def compile_executable(source, libraries)
-  all_libraries = source_to_object(libraries).map { |lib| File.join(DIRECTORY, lib) }.join(LIBRARY_CONNECTOR[LANGUAGE])
-  executable = File.join(DIRECTORY, EXECUTABLE[LANGUAGE])
-  compile_arg = eval(COMPILE_EXECUTABLE[LANGUAGE], binding)
-  puts "DEBUG compile_executable: #{compile_arg}"
-  output = `#{compile_arg}`
-  unless $?.success?
-    puts "ERROR compiling #{source}"
-    puts output
-    raise CompilationError
-  end
-  executable
-end
-
-def source_to_object(arg)
-  if arg.respond_to?(:map)
-    arg.map { |o| source_to_object(o) }
-  else
-    arg.sub(/#{SOURCE_SUFFIX[LANGUAGE]}$/,  OBJECT_SUFFIX[LANGUAGE])
-  end
-end
-
-def compile_library(library_basename)
-  compiled_library_basename = source_to_object(library_basename)
-  compiled_library = File.join(DIRECTORY, compiled_library_basename)
-  library = File.join(DIRECTORY, library_basename)
-  compile_arg = eval(COMPILE_LIBRARY[LANGUAGE])
-  puts "DEBUG compile_library: #{compile_arg}"
-  output = `#{compile_arg}`
-  unless $?.success?
-    puts "ERROR compiling #{library}"
-    puts output
-    raise CompilationError
-  end
-  compiled_library_basename
-end
-
-def run_executable(executable)
-  run_arg = eval(RUN_EXECUTABLE[LANGUAGE])
-  output = `#{run_arg}`
-  unless $?.success?
-    puts "ERROR running #{executable}"
-    puts output
-    raise ExecutionError
-  end
-  output   
-end
-
-def get_base_name(name)
-  suffix = HEADER_SUFFIX[LANGUAGE] ? "(#{HEADER_SUFFIX[LANGUAGE]}|#{SOURCE_SUFFIX[LANGUAGE]})" : "(#{SOURCE_SUFFIX[LANGUAGE]})"
-  /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
-end
-
-def edit_library(name, opts)
-  libraries = opts[:libraries]
-  headers = opts[:headers]
-  base_name = get_base_name(name)
-  if base_name
-    files = []
-    source = "#{base_name}.#{SOURCE_SUFFIX[LANGUAGE]}"
-    files << source
-    header = HEADER_SUFFIX[LANGUAGE] ? "#{base_name}.#{HEADER_SUFFIX[LANGUAGE]}" : nil
-    files << header if header
-    files.map! { |f| File.join(DIRECTORY,f) }
-    system("#{EDITOR} #{files.join(' ')}")
-    object = compile_library(source)
-    if files.inject {|m,f| m and File.exists?(f) }
-      libraries << source
-      libraries.uniq!
-      headers << header if header
-      headers.uniq!
+  def quote_header(header)
+    if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
+      header
     else
-      puts "no library created"
+      '"' + header + '"'
     end
-  else
-    raise LibraryEditError.new("bad name: #{name}")
-  end  
-end
-
-def get_command(line)
-  if /^\#(help)/.match(line)
-    return [$1,nil]
-  elsif /^\#(lib)\s+([a-zA-Z0-9.]+)\s*/.match(line)
-    [$1,$2]
-  elsif /^\#(include)\s+(["<].+[">])\s*/.match(line)
-    [$1,$2]
-  else
-    nil
   end
-end
 
-def braces_balanced?(tokens)
-  cnt = 0;
-  tokens.each do |token, value|
-    if :punctuator == token
-      case value
-      when '{'
-        cnt += 1
-      when '}'
-        cnt -= 1
-      else
-      end
-    end
-    raise ParseError.new("close brace without a preceding open brace") if cnt < 0
-  end
-  0 == cnt
-end
-
-def line_complete?(line)
-  tokens = $clex.stream(line)
-  if tokens.size > 1 and braces_balanced?(tokens)
-    ult = tokens.pop
-    penult = tokens.pop
-    return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
-  end
-  get_command(line)
-end
-
-def puts_output(output, last_output)
-  if output.length >= last_output.length and last_output == output[0,last_output.length]
-    puts output[last_output.length,output.length]
-  else
-    puts output
-  end
-end
-
-$clex = Clex.new(CLEX_LANGUAGE[LANGUAGE])
-lines = []
-last_output = ''
-libraries = []
-Dir.new(DIRECTORY).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[LANGUAGE]}$/) }
-puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
-headers = []
-Dir.new(DIRECTORY).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[LANGUAGE]}$/) } if HEADER_SUFFIX[LANGUAGE]
-puts "Using headers: #{headers.join(' ')}" unless headers.empty?
-loop do
-  line = ''
-  begin
-    continued_line = false
-    loop do
-      part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
-      if part.nil?
-        puts
-        exit
-      end
-      line << part
-      break if line_complete?(line)
-      continued_line = true
-    end
-  rescue ParseError
-    puts "clex reports that input doesn't lex: #{$!.message}"
-    next
-  end
-  break if line.nil?
-  cmd,cmd_arg = get_command(line)
-  if cmd
-    case cmd
-    when 'lib'
-      begin
-        edit_library(cmd_arg, :libraries => libraries, :headers => headers)
-      rescue CompilationError
-      end
-    when 'help'
-      help
-    when 'include'
-      begin
-        puts "DEBUG line #{line}"
-        puts "DEBUG cmd_arg #{cmd_arg}"
-        new_headers = headers.dup
-        new_headers << cmd_arg unless headers.include?(cmd_arg)
-        source = make_source(lines, new_headers)
-        executable = compile_executable(source, libraries)
-        headers = new_headers
-      rescue CompilationError
-        puts "failed to include #{cmd_arg}"
-      end
-    else
-      puts "Unrecognized command: #{lib}"
-    end
-  else
+  def make_source(lines, headers)  
+    stdout = $stdout
+    source = File.join(@directory,SOURCE[@language])
     begin
-      new_lines = lines.dup
-      new_lines << line
-      source = make_source(new_lines, headers)
-      executable = compile_executable(source, libraries)
-      output = run_executable(executable)
-      puts_output(output, last_output)
-      last_output = output
-      lines = new_lines
-    rescue CompilationError, ExecutionError
+      $stdout = File.open(source,'w')
+      ERB.new(MAIN_TEMPLATE[@language]).run(binding)
+      $stdout.flush
+    ensure
+      $stdout = stdout
+    end
+    source
+  end
+
+  def compile_executable(source, libraries)
+    all_libraries = source_to_object(libraries).map { |lib| File.join(@directory, lib) }.join(LIBRARY_CONNECTOR[@language])
+    executable = File.join(@directory, EXECUTABLE[@language])
+    compile_arg = eval(COMPILE_EXECUTABLE[@language], binding)
+    @out.puts "DEBUG compile_executable: #{compile_arg}" if @debug
+    output = `#{compile_arg}`
+    unless $?.success?
+      @out.puts "ERROR compiling #{source}"
+      @out.puts output
+      raise CompilationError
+    end
+    executable
+  end
+
+  def source_to_object(arg)
+    if arg.respond_to?(:map)
+      arg.map { |o| source_to_object(o) }
+    else
+      arg.sub(/#{SOURCE_SUFFIX[@language]}$/,  OBJECT_SUFFIX[@language])
     end
   end
+
+  def compile_library(library_basename)
+    compiled_library_basename = source_to_object(library_basename)
+    compiled_library = File.join(@directory, compiled_library_basename)
+    library = File.join(@directory, library_basename)
+    compile_arg = eval(COMPILE_LIBRARY[@language])
+    @out.puts "DEBUG compile_library: #{compile_arg}" if @debug
+    output = `#{compile_arg}`
+    unless $?.success?
+      @out.puts "ERROR compiling #{library}"
+      @out.puts output
+      raise CompilationError
+    end
+    compiled_library_basename
+  end
+
+  def run_executable(executable)
+    run_arg = eval(RUN_EXECUTABLE[@language])
+    output = `#{run_arg}`
+    unless $?.success?
+      @out.puts "ERROR running #{executable}"
+      @out.puts output
+      raise ExecutionError
+    end
+    output   
+  end
+
+  def get_base_name(name)
+    suffix = HEADER_SUFFIX[@language] ? "(#{HEADER_SUFFIX[@language]}|#{SOURCE_SUFFIX[@language]})" : "(#{SOURCE_SUFFIX[@language]})"
+    /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
+  end
+
+  def edit_library(name, opts)
+    libraries = opts[:libraries]
+    headers = opts[:headers]
+    base_name = get_base_name(name)
+    if base_name
+      files = []
+      source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
+      files << source
+      header = HEADER_SUFFIX[@language] ? "#{base_name}.#{HEADER_SUFFIX[@language]}" : nil
+      files << header if header
+      files.map! { |f| File.join(@directory,f) }
+      system("#{EDITOR} #{files.join(' ')}")
+      object = compile_library(source)
+      if files.inject {|m,f| m and File.exists?(f) }
+        libraries << source
+        libraries.uniq!
+        headers << header if header
+        headers.uniq!
+      else
+        @out.puts "no library created"
+      end
+    else
+      raise LibraryEditError.new("bad name: #{name}")
+    end  
+  end
+
+  def get_command(line)
+    if /^\#(help)/.match(line)
+      return [$1,nil]
+    elsif /^\#(lib)\s+([a-zA-Z0-9.]+)\s*/.match(line)
+      [$1,$2]
+    elsif /^\#(include)\s+(["<].+[">])\s*/.match(line)
+      [$1,$2]
+    else
+      nil
+    end
+  end
+
+  def braces_balanced?(tokens)
+    cnt = 0;
+    tokens.each do |token, value|
+      if :punctuator == token
+        case value
+        when '{'
+          cnt += 1
+        when '}'
+          cnt -= 1
+        else
+        end
+      end
+      raise ParseError.new("close brace without a preceding open brace") if cnt < 0
+    end
+    0 == cnt
+  end
+
+  def line_complete?(line)
+    tokens = @clex.stream(line)
+    if tokens.size > 1 and braces_balanced?(tokens)
+      ult = tokens.pop
+      penult = tokens.pop
+      return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
+    end
+    get_command(line)
+  end
+
+  def puts_output(output, last_output)
+    if output.length >= last_output.length and last_output == output[0,last_output.length]
+      @out.puts output[last_output.length,output.length]
+    else
+      @out.puts output
+    end
+  end
+
+  def prompt_for_language
+    puts "choose a language (#{LANGUAGES.join(' ')}):"
+    language = gets.strip.downcase
+    unless LANGUAGES.include?(language)
+      raise "not an option: #{llanguage}"
+    end
+    language
+  end
+
+  def initialize(args, opts={})
+    @debug = opts[:debug]
+    case args.length
+    when 2
+      if LANGUAGES.include?(args[0].downcase)
+        @language = args[0].downcase
+        @directory = args[1]
+      elsif LANGUAGES.include?(args[1].downcase)
+        @language = args[1].downcase
+        @directory = args[0]
+      else
+        raise "neither argument is a supported language"
+      end
+    when 1
+      if LANGUAGES.include?(arg[0].downcase)
+        @language = args[0].downcase
+      else
+        @directory = args[0]
+      end
+    when 0
+      # noop
+    else
+      raise "too many args"
+    end
+  end
+  
+  def repl(opts = {})
+    raise "no language" unless @language
+    raise "no directory" unless @directory
+    FileUtils.mkdir_p @directory
+    @out = opts[:output] || $stdout
+    @in = opts[:input] || $stdin
+    @clex = Clex.new(CLEX_LANGUAGE[@language])
+    lines = []
+    last_output = ''
+    libraries = []
+    Dir.new(@directory).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
+    @out.puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
+    headers = []
+    Dir.new(@directory).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
+    @out.puts "Using headers: #{headers.join(' ')}" unless headers.empty?
+    loop do
+      line = ''
+      begin
+        continued_line = false
+        loop do
+          if @in == $stdin
+            part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
+          else
+            part = @in.gets
+          end
+          if part.nil?
+            @out.puts
+            return
+          end
+          line << part
+          break if line_complete?(line)
+          continued_line = true
+        end
+      rescue ParseError
+        @out.puts "clex reports that input doesn't lex: #{$!.message}"
+        next
+      end
+      break if line.nil?
+      cmd,cmd_arg = get_command(line)
+      if cmd
+        case cmd
+        when 'lib'
+          begin
+            edit_library(cmd_arg, :libraries => libraries, :headers => headers)
+          rescue CompilationError
+          end
+        when 'help'
+          help
+        when 'include'
+          begin
+            @out.puts "DEBUG line #{line}" if @debug
+            @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
+            new_headers = headers.dup
+            new_headers << cmd_arg unless headers.include?(cmd_arg)
+            source = make_source(lines, new_headers)
+            executable = compile_executable(source, libraries)
+            headers = new_headers
+          rescue CompilationError
+            @out.puts "failed to include #{cmd_arg}"
+          end
+        else
+          @out.puts "Unrecognized command: #{lib}"
+        end
+      else
+        begin
+          new_lines = lines.dup
+          new_lines << line
+          source = make_source(new_lines, headers)
+          executable = compile_executable(source, libraries)
+          output = run_executable(executable)
+          puts_output(output, last_output)
+          last_output = output
+          lines = new_lines
+        rescue CompilationError, ExecutionError
+        end
+      end
+    end
+  end
+end
+
+if $0 == __FILE__
+  crepl = Crepl.new(ARGV)
+  crepl.language = crepl.prompt_for_language unless crepl.language
+  crepl.directory = "#{crepl.language}-project" unless crepl.directory
+  puts "Working in #{@directory} using language #{@language}"
+  crepl.repl
 end
