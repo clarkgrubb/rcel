@@ -30,22 +30,23 @@ class Crepl
   end
 
   def help
-    case @language
-    when C
-      @out.puts <<EOS
-#help: display this menu
-#lib <LIBRARY_NAME>: to edit library
-#include <HEADER>: to include header
+    @out.puts <<EOS
+#class             Put the following line outside the main method, but inside class body.
+                   For C, C++, and Objective C, the line is put outside the main function
+                   and after the header lines.
+#delete  <LINE_NO> Delete the incated line number
+#dir     <DIR>     Change to indicated directory.  This clears the session.
+#header            Put the following line outside the class body.  For C, C++, and
+                   Objective C, the line goes ahead of all function definitions.
+#help              Display this menu
+#include <HEADER>  Include the indicated header file.
+#library <LIBRARY> Edit the indicated library.
+#list              List all header lines, class lines, and main lines.
+#main              Put the following line inside the main method.  Normally it is not
+                   necessary to specify this; will override built-in logic for determing
+                   line position.
+#rm-lib  <LIBRARY> Remove the indicated library.
 EOS
-    when CPP
-      @out.puts "implement me"
-    when OBJC
-      @out.puts "implement me"
-    when JAVALANG
-      @out.puts "implement me"
-    when CSHARP
-      @out.puts "implement me"
-    end
   end
 
   GCC = `which gcc`.chomp
@@ -334,9 +335,7 @@ EOS
     /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
   end
 
-  def edit_library(name, opts)
-    libraries = opts[:libraries]
-    headers = opts[:headers]
+  def edit_library(lines, name)
     base_name = get_base_name(name)
     if base_name
       files = []
@@ -348,10 +347,10 @@ EOS
       system("#{EDITOR} #{files.join(' ')}")
       object = compile_library(source)
       if files.inject {|m,f| m and File.exists?(f) }
-        libraries << source
-        libraries.uniq!
-        headers << header if header
-        headers.uniq!
+        lines.libraries << source
+        lines.libraries.uniq!
+        lines.header_lines << header if header
+        lines.header_lines.uniq!
       else
         @out.puts "no library created"
       end
@@ -360,22 +359,22 @@ EOS
     end  
   end
 
-  def get_command(line)
-    if /^\#(help)/.match(line)
-      return [$1,nil]
-    elsif /^\#(lib)\s+([a-zA-Z0-9.]+)\s*/.match(line)
-      [$1,$2]
-    elsif /^\#(include)\s+(["<].+[">])\s*/.match(line)
-      [$1,$2]
-    elsif /^\#(list)/.match(line)
-      [$1,nil]
-    elsif /^\#(delete)\s+(\d+)/.match(line)
-      [$1,$2.to_i]
+  def rm_library(lines, name)
+    base_name = get_base_name(name)
+    if base_name
+      source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
+      FileUtils.rm(source)
+      lines.libraries.delete(source)
+      if HEADER_SUFFIX[@language]
+        header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
+        FileUtils.rm(header)
+        lines.header_lines.delete(header)
+      end
     else
-      nil
+      raise LibraryEditError.new("bad Name: #{name}")
     end
   end
-
+  
   def braces_balanced?(tokens)
     cnt = 0;
     tokens.each do |token, value|
@@ -394,13 +393,14 @@ EOS
   end
 
   def line_complete?(line)
+    return true if /\A\s*#/.match(line)
     tokens = @clex.stream(line)
     if tokens.size > 1 and braces_balanced?(tokens)
       ult = tokens.pop
       penult = tokens.pop
       return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
     end
-    get_command(line)
+    false
   end
 
   def puts_output(output, last_output)
@@ -412,7 +412,7 @@ EOS
   end
 
   def prompt_for_language
-    print "choose a language (#{LANGUAGES.join(' ')}): "
+    print "Choose a language (#{LANGUAGES.join(' ')}): "
     language = gets.strip.downcase
     unless LANGUAGES.include?(language)
       raise "not an option: #{llanguage}"
@@ -446,98 +446,171 @@ EOS
     end
   end
 
+  def get_command(line)
+    case line.strip
+    when /^#(c.*)$/
+      cmd = $1
+      /^#{cmd}/.match("class") ? ["class", nil] : nil
+    when /^#(deb.*)$/
+      cmd = $1
+      /^#{cmd}/.match("debug") ? ["debug", nil] : nil
+    when /^#(de.*)\s+(\d+)$/
+      cmd, arg = $1, $2.to_i
+      /^#{cmd}/.match("delete") ? ["delete", arg] : nil
+    when /^#(di.*)\s+([\w.#+-]+)$/
+      cmd, arg = $1, $2
+      /^#{cmd}/.match("directory") ? ["directory", arg]: nil
+    when /^#(hea.*)$/
+      cmd = $1
+      /^#{cmd}/.match("header") ? ["header", nil] : nil
+    when /^#(hel.*)$/
+      cmd = $1
+      /^#{cmd}/.match("help") ? ["help", nil] : nil
+    when /^#(i.*)\s+(["<].+[">])$/
+      cmd, arg = $1, $2
+      /^#{cmd}/.match("include") ? ["include", arg] : nil
+    when /^#(lib.*)\s+([\w.]+)$/
+      cmd, arg = $1, $2
+      /^#{cmd}/.match("library") ? ["library", arg] : nil
+    when /^#(lis.*)$/
+      cmd = $1
+      /^#{cmd}/.match("list") ? ["list", nil] : nil
+    when /^#(m.*)$/
+      cmd = $1
+      /^#{cmd}/.match("main") ? ["main", nil] : nil
+    when /^#(rm-l.*)\s+([\w.]+)$/
+      cmd, arg = $1, $2
+      /^#{cmd}/.match("rm-library") ? ["rm-library", nil] : nil
+    when /^#(remove-l.*)\s+([\w.]+)$/
+      cmd, arg = $1, $2
+         /^#{cmd}/.match("remove-library") ? ["rm-library", nil] : nil
+    else
+      [nil,nil]
+    end
+  end
+  
+  def process_command(lines, line)
+    cmd,cmd_arg = get_command(line)
+    case cmd
+    when 'class'
+      line_location = 'C'
+    when 'debug'
+      @debug = !@debug
+    when 'delete'
+      begin
+        lines.delete(cmd_arg)
+        last_output = '' if 0 == lines.size
+      rescue
+        @out.puts "couldn't delete line #{cmd_arg}: #{$!.message}"
+      end
+    when 'directory'
+      set_directory(lines, cmd_arg)
+    when 'header'
+      lines.location = 'H'
+    when 'help'
+      help
+    when 'include'
+      begin
+        @out.puts "DEBUG line #{line}" if @debug
+        @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
+        new_lines = lines.dup
+        new_lines.header_lines << cmd_arg unless headers.include?(cmd_arg)
+        source = make_source(new_lines)
+        executable = compile_executable(source, libraries)
+        lines = new_lines
+      rescue CompilationError
+        @out.puts "failed to include #{cmd_arg}"
+      end
+    when 'library'
+      begin
+        edit_library(lines, cmd_arg)
+      rescue CompilationError
+      end
+    when 'list'
+      lines.list
+    when 'main'
+      lines.location = 'M'
+    when 'rm-library'
+      raise "implement me"
+    else
+      @out.puts "Unrecognized command: #{line}"
+    end
+    cmd
+  end
+
+  def process_line(lines, line)
+    begin
+      new_lines = lines.dup
+      new_lines.add(line, lines.location)
+      source = make_source(new_lines)
+      executable = compile_executable(source, lines.libraries)
+      new_lines.output = run_executable(executable)
+      puts_output(new_lines.output, lines.output)
+    rescue CompilationError, ExecutionError
+      return lines
+    end
+    new_lines
+  end
+
+  def get_line(lines)
+    line = ''
+    continued_line = false
+    loop do
+      if @in == $stdin
+        part = readline("#{continued_line ? "#{lines.location}..." : ("#{lines.location}%03d" % (lines.size + 1))}> ", true)
+      else
+        part = @in.gets
+      end
+      if part.nil?
+        @out.puts
+        return nil
+      end
+      line << part
+      return  line if line_complete?(line)
+      continued_line = true
+    end
+  end
+
+  def set_directory(lines, directory)
+    FileUtils.mkdir_p @directory
+    lines.clear
+    Dir.new(@directory).each { |f| lines.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
+    @out.puts "Using libraries: #{lines.libraries.join(' ')}" unless lines.libraries.empty?
+    Dir.new(@directory).each { |f| lines.header_lines << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
+    @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
+  end
+  
   def repl(opts = {})
     raise "no language" unless @language
     raise "no directory" unless @directory
-    FileUtils.mkdir_p @directory
     @out = opts[:output] || $stdout
     @in = opts[:input] || $stdin
     @clex = Clex.new(CLEX_LANGUAGE[@language])
-    lines = Lines.new(@language)
-    last_output = ''
-    libraries = []
-    Dir.new(@directory).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
-    @out.puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
-    Dir.new(@directory).each { |f| lines.header_lines << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
-    @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
+    lines = Session.new(@language)
+    set_directory(lines, @directory)
     loop do
-      line = ''
+      cmd = nil
       begin
-        continued_line = false
-        loop do
-          if @in == $stdin
-            part = readline("#{continued_line ? '...' : ("%03d" % (lines.size + 1))}> ", true)
-          else
-            part = @in.gets
-          end
-          if part.nil?
-            @out.puts
-            return
-          end
-          line << part
-          break if line_complete?(line)
-          continued_line = true
-        end
+        line = get_line(lines)
       rescue ParseError
         @out.puts "clex reports that input doesn't lex: #{$!.message}"
         next
       end
       break if line.nil?
-      cmd,cmd_arg = get_command(line)
-      if cmd
-        case cmd
-        when 'lib'
-          begin
-            edit_library(cmd_arg, :libraries => libraries, :headers => lines.header_lines)
-          rescue CompilationError
-          end
-        when 'help'
-          help
-        when 'include'
-          begin
-            @out.puts "DEBUG line #{line}" if @debug
-            @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
-            new_lines = lines.dup
-            new_lines.header_lines << cmd_arg unless headers.include?(cmd_arg)
-            source = make_source(new_lines)
-            executable = compile_executable(source, libraries)
-            lines = new_lines
-          rescue CompilationError
-            @out.puts "failed to include #{cmd_arg}"
-          end
-        when 'list'
-          lines.list
-        when 'delete'
-          begin
-            lines.delete(cmd_arg)
-            last_output = '' if 0 == lines.size
-          rescue
-            @out.puts "couldn't delete line #{cmd_arg}: #{$!.message}"
-          end
-        else
-          @out.puts "Unrecognized command: #{lib}"
-        end
+      if /\A\s*#/.match(line)
+        cmd = process_command(lines, line)
       else
-        begin
-          new_lines = lines.dup
-          new_lines.add(line)
-          source = make_source(new_lines)
-          executable = compile_executable(source, libraries)
-          output = run_executable(executable)
-          puts_output(output, last_output)
-          last_output = output
-          lines = new_lines
-        rescue CompilationError, ExecutionError
-        end
+        lines = process_line(lines, line)
       end
+      lines.location = ' ' unless cmd == 'class'
     end
   end
 end
 
 class Crepl
-  class Lines
+  class Session
 
-    attr_accessor :header_lines, :class_lines, :main_lines
+    attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location
 
     CLASS_TESTS_JAVA =
       [ lambda {|l| /\A\s*(public|protected|private)\s+enum\b/.match(l) },
@@ -549,9 +622,7 @@ class Crepl
     def initialize(language)
       @language = language
       raise "unrecognized language #{@language}" unless LANGUAGES.include?(@language)
-      @header_lines = []
-      @class_lines = []
-      @main_lines = []
+      clear
       @header_tests = []
       @class_tests = []
       case @language
@@ -562,11 +633,21 @@ class Crepl
       end
     end
 
+    def clear
+      @output = ''
+      @location = ' '
+      @libraries = []
+      @header_lines = []
+      @class_lines = []
+      @main_lines = []
+    end
+    
     def dup
-      retval = Lines.new(@language)
+      retval = Session.new(@language)
       retval.header_lines = @header_lines.dup
       retval.class_lines = @class_lines.dup
       retval.main_lines = @main_lines.dup
+      retval.libraries = @libraries.dup
       retval
     end
 
@@ -574,13 +655,24 @@ class Crepl
       [@header_lines,@class_lines,@main_lines].inject(0) {|m,o| m+o.size }
     end
     
-    def add(line)
-      if @header_tests.inject(false) { |m,o| m or o.call(line) }
+    def add(line, location)
+      case location
+      when ' '
+        if @header_tests.inject(false) { |m,o| m or o.call(line) }
+          @header_lines << line
+        elsif @class_tests.inject(false) { |m,o| m or o.call(line) }
+          @class_lines << line
+        else
+          @main_lines << line
+        end
+      when 'H'
         @header_lines << line
-      elsif @class_tests.inject(false) { |m,o| m or o.call(line) }
+      when 'C'
         @class_lines << line
+      when 'M'
+        @main_ines << line
       else
-        @main_lines << line
+        raise "unsupported location: #{location}"
       end
     end
 
@@ -613,11 +705,10 @@ class Crepl
   end
 end  
 
-
 if $0 == __FILE__
   crepl = Crepl.new(ARGV)
   crepl.language = crepl.prompt_for_language unless crepl.language
   crepl.directory = "#{crepl.language}-project" unless crepl.directory
-  puts "Working in #{crepl.directory} using language #{crepl.language}"
+  puts "Working in directory #{crepl.directory} using language #{crepl.language}.  Type #help to see list of commands."
   crepl.repl
 end

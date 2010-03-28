@@ -2,19 +2,13 @@
 - (done) ability to create libraries (pops into an editor) (finish this)
 - (done) write a parser for comments, string literals, and character literals.  Make
   the end of line detector use this parser
-- automatically include dependencies
 - (done) commands: #lib
-- commands: #help
-- ability to specify libraries
+- (done) commands: #help
 - (done) automatically put each line in one of three places: (1) outside of any class
   and main definition, (2) outside main definition but inside class definition, and
   (3) inside main definition.  #include, #import, import, using go in (1).  Java enum
   declaration goes in (2).  Everything else goes in (3)
-- generate a Makefile, Antfile
-- change executable name to dirname
-- framework: C++: stl or boost
-- for C#, link regex ddl
-- (fixed) ^D causes exception when editing
+- (done) fix that ^D causes exception when editing
 - (done) unit tests
 - (done) if repl restart on project, find existing libraries
 - (done) p() as abbrev for puts(), System.out.println(), System.Console.WriteLine(),
@@ -22,10 +16,25 @@
 - (done) implement pf for java and c#, it it is possible...
 - (done) catch library compilation errors
 - (done) don't include headers/use libraries multiple times
-- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
-- check if needed executables (gcc, java(c), mono, (g)mcs exist...)
 - (done) don't require directory to be specified at startup: use a default value
-- ability to reload lines from previous session
 - (done) ability to display and edit lines
 - (done) if all lines deleted, flush output
 - package as a ruby gem
+- (done) ability to define a function or method and have it go to the class line position;
+  can code recognize a func/meth definition, or do we need to use a command for this?
+
+- generate a Makefile, Antfile, NAntfile
+- ability to specify libraries
+- if using to create a library, should also be able to create the unit test for the library
+- change executable name to dirname
+- framework: C++: stl or boost
+- for C#, link regex ddl
+- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
+- check if needed executables (gcc, java(c), mono, (g)mcs exist...)
+- ability to reload lines from previous session
+- automatically include dependencies
+- unit test #lib
+- run from within emacs
+- rename lines and new_lines to sess and new_sess
+- what happens when running #include with java and C#?
+- implement #rm-library
