@@ -412,7 +412,7 @@ EOS
   end
 
   def prompt_for_language
-    puts "choose a language (#{LANGUAGES.join(' ')}):"
+    print "choose a language (#{LANGUAGES.join(' ')}): "
     language = gets.strip.downcase
     unless LANGUAGES.include?(language)
       raise "not an option: #{llanguage}"
@@ -446,78 +446,6 @@ EOS
     end
   end
 
-  class Lines
-
-    attr_accessor :header_lines, :class_lines, :main_lines
-
-    CLASS_TESTS_JAVA =
-      [ lambda {|l| /\A\s*public\s+enum/.match(l) },
-      ]
-    
-    def initialize(language)
-      @language = language
-      raise "unrecognized language #{@language}" unless LANGUAGES.include?(@language)
-      @header_lines = []
-      @class_lines = []
-      @main_lines = []
-      @header_tests = []
-      @class_tests = []
-      case @language
-      when JAVALANG
-        @class_tests = CLASS_TESTS_JAVA
-      end
-    end
-
-    def dup
-      retval = Lines.new(@language)
-      retval.header_lines = @header_lines.dup
-      retval.class_lines = @class_lines.dup
-      retval.main_lines = @main_lines.dup
-      retval
-    end
-
-    def size
-      [@header_lines,@class_lines,@main_lines].inject(0) {|m,o| m+o.size }
-    end
-    
-    def add(line)
-      if @header_tests.inject(false) { |m,o| m or o.call(line) }
-        @header_lines << line
-      elsif @class_tests.inject(false) { |m,o| m or o.call(line) }
-        @class_lines << line
-      else
-        @main_lines << line
-      end
-    end
-
-    def list
-      lineno = 1
-      [@header_lines, @class_lines, @main_lines].each do |a|
-        a.each do |ll|
-          ll.split("\n").each_with_index do |l,i|
-            if 0 == i
-              puts "%03d> %s" % [ lineno, l]
-            else
-              puts "...> %s" % l
-            end
-            lineno += 1
-          end
-        end
-      end
-    end
-
-    def delete(lineno)
-      raise "line number must be positive" if lineno <= 0
-      [@header_lines, @class_lines, @main_lines].each do |a|
-        if lineno <= a.size
-          a.delete_at(lineno-1)
-          return
-        end
-        lineno -= a.size
-      end
-    end
-  end
-  
   def repl(opts = {})
     raise "no language" unless @language
     raise "no directory" unless @directory
@@ -605,6 +533,86 @@ EOS
     end
   end
 end
+
+class Crepl
+  class Lines
+
+    attr_accessor :header_lines, :class_lines, :main_lines
+
+    CLASS_TESTS_JAVA =
+      [ lambda {|l| /\A\s*(public|protected|private)\s+enum\b/.match(l) },
+      ]
+    CLASS_TESTS_CSHARP =
+      [ lambda {|l| /\A\s*(public\s+)?enum\b/.match(l) },
+      ]
+    
+    def initialize(language)
+      @language = language
+      raise "unrecognized language #{@language}" unless LANGUAGES.include?(@language)
+      @header_lines = []
+      @class_lines = []
+      @main_lines = []
+      @header_tests = []
+      @class_tests = []
+      case @language
+      when JAVALANG
+        @class_tests = CLASS_TESTS_JAVA
+      when CSHARP
+        @class_tests = CLASS_TESTS_CSHARP
+      end
+    end
+
+    def dup
+      retval = Lines.new(@language)
+      retval.header_lines = @header_lines.dup
+      retval.class_lines = @class_lines.dup
+      retval.main_lines = @main_lines.dup
+      retval
+    end
+
+    def size
+      [@header_lines,@class_lines,@main_lines].inject(0) {|m,o| m+o.size }
+    end
+    
+    def add(line)
+      if @header_tests.inject(false) { |m,o| m or o.call(line) }
+        @header_lines << line
+      elsif @class_tests.inject(false) { |m,o| m or o.call(line) }
+        @class_lines << line
+      else
+        @main_lines << line
+      end
+    end
+
+    def list
+      lineno = 1
+      [@header_lines, @class_lines, @main_lines].each do |a|
+        a.each do |ll|
+          ll.split("\n").each_with_index do |l,i|
+            if 0 == i
+              puts "%03d> %s" % [ lineno, l]
+            else
+              puts "...> %s" % l
+            end
+            lineno += 1
+          end
+        end
+      end
+    end
+
+    def delete(lineno)
+      raise "line number must be positive" if lineno <= 0
+      [@header_lines, @class_lines, @main_lines].each do |a|
+        if lineno <= a.size
+          a.delete_at(lineno-1)
+          return
+        end
+        lineno -= a.size
+      end
+    end
+  end
+end  
+
 
 if $0 == __FILE__
   crepl = Crepl.new(ARGV)
