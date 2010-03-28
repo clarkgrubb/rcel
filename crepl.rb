@@ -103,7 +103,7 @@ EOS
 
 #include <stdio.h>
 #include <stdarg.h>
-<% headers.each do |header| %>
+<% header_lines.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
 
@@ -119,9 +119,13 @@ pf(char *fmt, ...) {
   vprintf(fmt, ap);
 }
 
+<% class_lines.each do |line| %>
+<%= line %>
+<% end %>
+
 int
 main (int argc, char **argv) {
-  <% lines.each do |line| %>
+  <% main_lines.each do |line| %>
   <%= line %>
   <% end %>
   return 0;
@@ -131,6 +135,10 @@ EOS
   MAIN_TEMPLATE[JAVALANG] =<<EOS
 
 import static java.lang.System.out;
+
+<% header_lines.each do |line| %>
+<%= line %>
+<% end %>
 
 public class Main {
 
@@ -147,8 +155,12 @@ public class Main {
   }
   <% end %>
 
+  <% class_lines.each do |line| %>
+  <%= line %>
+  <% end %>
+
   public static void main(String[] args) {
-    <% lines.each do |line| %>
+    <% main_lines.each do |line| %>
     <%= line %>
     <% end %>
   }
@@ -156,6 +168,11 @@ public class Main {
 EOS
 
   MAIN_TEMPLATE[CSHARP] =<<EOS
+
+<% header_lines.each do |line| %>
+<%= line %>
+<% end %>
+
 public class Top {
   public static void p(System.String msg) {
     System.Console.WriteLine(msg);
@@ -165,8 +182,12 @@ public class Top {
     System.Console.WriteLine(string.Format(fmt, list));
   }
 
+  <% class_lines.each do |line| %>
+  <%= line %>
+  <% end %>
+
   public static void Main() {
-    <% lines.each do |line| %>
+    <% main_lines.each do |line| %>
     <%= line %>
     <% end %>
   }
@@ -175,7 +196,7 @@ EOS
 
   MAIN_TEMPLATE[OBJC] =<<EOS
 #import <Foundation/Foundation.h>
-<% headers.each do |header| %>
+<% header_lines.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
 
@@ -191,9 +212,13 @@ pf(char *fmt, ...) {
   vprintf(fmt, ap);
 }
 
+<% class_lines.each do |line| %>
+<%= line %>
+<% end %>
+
 int main (int argc, const char * argv[]) {
   NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
-  <% lines.each do |line| %>
+  <% main_lines.each do |line| %>
   <%= line %>
   <% end %>
   [pool drain];
@@ -203,7 +228,7 @@ EOS
 
   MAIN_TEMPLATE[CPP] = <<EOS
 #include <iostream>
-<% headers.each do |header| %>
+<% header_lines.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
 using namespace std;
@@ -220,8 +245,12 @@ pf(const char *fmt, ...) {
   vprintf(fmt, ap);
 }
 
+<% class_lines.each do |line| %>
+<%= line %>
+<% end %>
+
 int main() {
-  <% lines.each do |line| %>
+  <% main_lines.each do |line| %>
   <%= line %>
   <% end %>
   return 0;
@@ -236,9 +265,12 @@ EOS
     end
   end
 
-  def make_source(lines, headers)  
+  def make_source(lines)  
     stdout = $stdout
     source = File.join(@directory,SOURCE[@language])
+    header_lines = lines.header_lines
+    class_lines = lines.class_lines
+    main_lines = lines.main_lines
     begin
       $stdout = File.open(source,'w')
       ERB.new(MAIN_TEMPLATE[@language]).run(binding)
@@ -409,6 +441,52 @@ EOS
       raise "too many args"
     end
   end
+
+  class Lines
+
+    attr_accessor :header_lines, :class_lines, :main_lines
+
+    CLASS_TESTS_JAVA =
+      [ lambda {|l| /\A\s*public\s+enum/.match(l) },
+      ]
+    
+    def initialize(language)
+      @language = language
+      raise "unrecognized language #{@language}" unless LANGUAGES.include?(@language)
+      @header_lines = []
+      @class_lines = []
+      @main_lines = []
+      @header_tests = []
+      @class_tests = []
+      case @language
+      when JAVALANG
+        @class_tests = CLASS_TESTS_JAVA
+      end
+    end
+
+    def dup
+      retval = Lines.new(@language)
+      retval.header_lines = @header_lines.dup
+      retval.class_lines = @class_lines.dup
+      retval.main_lines = @main_lines.dup
+      retval
+    end
+
+    def size
+      [@header_lines,@class_lines,@main_lines].inject(0) {|m,o| m+o.size }
+    end
+    
+    def add(line)
+      if @header_tests.inject(false) { |m,o| m or o.call(line) }
+        @header_lines << line
+      elsif @class_tests.inject(false) { |m,o| m or o.call(line) }
+        @class_lines << line
+      else
+        @main_lines << line
+      end
+    end
+    
+  end
   
   def repl(opts = {})
     raise "no language" unless @language
@@ -417,14 +495,13 @@ EOS
     @out = opts[:output] || $stdout
     @in = opts[:input] || $stdin
     @clex = Clex.new(CLEX_LANGUAGE[@language])
-    lines = []
+    lines = Lines.new(@language)
     last_output = ''
     libraries = []
     Dir.new(@directory).each { |f| libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
     @out.puts "Using libraries: #{libraries.join(' ')}" unless libraries.empty?
-    headers = []
-    Dir.new(@directory).each { |f| headers << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
-    @out.puts "Using headers: #{headers.join(' ')}" unless headers.empty?
+    Dir.new(@directory).each { |f| lines.header_lines << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
+    @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
     loop do
       line = ''
       begin
@@ -462,11 +539,11 @@ EOS
           begin
             @out.puts "DEBUG line #{line}" if @debug
             @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
-            new_headers = headers.dup
-            new_headers << cmd_arg unless headers.include?(cmd_arg)
-            source = make_source(lines, new_headers)
+            new_lines = lines.dup
+            new_lines.header_lines << cmd_arg unless headers.include?(cmd_arg)
+            source = make_source(new_lines)
             executable = compile_executable(source, libraries)
-            headers = new_headers
+            lines = new_lines
           rescue CompilationError
             @out.puts "failed to include #{cmd_arg}"
           end
@@ -476,8 +553,8 @@ EOS
       else
         begin
           new_lines = lines.dup
-          new_lines << line
-          source = make_source(new_lines, headers)
+          new_lines.add(line)
+          source = make_source(new_lines)
           executable = compile_executable(source, libraries)
           output = run_executable(executable)
           puts_output(output, last_output)

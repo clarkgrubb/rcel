@@ -73,5 +73,16 @@ class Test::Unit::TestCase
     assert_equal(1, lines.size)
     assert_equal('hello world', lines[0])
   end
+
+  # test a java enum, which must be placed outside the Main method
+  # but inside the class definition.
+  def test_java2
+    lines = eval_print(@java, <<EOF)
+public enum DayOfWeek { MON, TUE, WED, THU, FRI, SAT, SUN };
+pf("Day of Week: %s", DayOfWeek.TUE);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("Day of Week: TUE", lines[0])
+  end
   
 end
