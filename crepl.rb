@@ -493,7 +493,7 @@ EOS
     cmd,cmd_arg = get_command(line)
     case cmd
     when 'class'
-      line_location = 'C'
+      lines.location = 'C'
     when 'debug'
       @debug = !@debug
     when 'delete'
@@ -514,9 +514,9 @@ EOS
         @out.puts "DEBUG line #{line}" if @debug
         @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
         new_lines = lines.dup
-        new_lines.header_lines << cmd_arg unless headers.include?(cmd_arg)
+        new_lines.header_lines << cmd_arg unless new_lines.header_lines.include?(cmd_arg)
         source = make_source(new_lines)
-        executable = compile_executable(source, libraries)
+        executable = compile_executable(source, new_lines.libraries)
         lines = new_lines
       rescue CompilationError
         @out.puts "failed to include #{cmd_arg}"

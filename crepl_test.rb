@@ -50,6 +50,24 @@ class Test::Unit::TestCase
     assert_equal('hello world', lines[0])
   end
 
+  # test #include and #class
+  def test_c2
+    lines = eval_print(@c, <<'EOF')
+#include <stdarg.h>
+#class
+int add(int first, ...) {
+  va_list ap;
+  va_start(ap, first);
+  int second = va_arg(ap, int);
+  va_end(ap);
+  return first + second;
+}
+pf("%d\n", add(3,7));
+EOF
+    assert_equal(1, lines.size);
+    assert_equal(10, lines[0].to_i);
+  end
+  
   def test_java1
     lines = eval_print(@java, 'System.out.println("hello world");')
     assert_equal(1, lines.size)
