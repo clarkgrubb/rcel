@@ -102,5 +102,27 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("Day of Week: TUE", lines[0])
   end
-  
+
+  def test_arg1
+    lines = eval_print(@c, <<EOF)
+#arg hello
+p(argv[1]);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("hello", lines[0])
+  end
+
+  def test_arg2
+    lines = eval_print(@c, <<EOF)
+#arg hello there
+pf("%d", argc);
+p(argv[1]);
+p(argv[2]);
+  end
+EOF
+    assert_equal(3, lines.size)
+    ["3", "hello", "there" ].each_with_index do |line, i|
+      assert_equal(line, lines[i], "expected line #{i+1} to be #{line}")
+    end
+  end
 end

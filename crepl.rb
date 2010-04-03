@@ -31,6 +31,8 @@ class Crepl
 
   def help
     @out.puts <<EOS
+#arguments         Set the command line arguments.  Type them separated by whitespace as
+                   if you were invoking the command from a shell.
 #class             Put the following line outside the main method, but inside class body.
                    For C, C++, and Objective C, the line is put outside the main function
                    and after the header lines.
@@ -187,7 +189,7 @@ public class Top {
   <%= line %>
   <% end %>
 
-  public static void Main() {
+  public static void Main(string[] args) {
     <% main_lines.each do |line| %>
     <%= line %>
     <% end %>
@@ -319,9 +321,9 @@ EOS
     compiled_library_basename
   end
 
-  def run_executable(executable)
+  def run_executable(executable, arguments)
     run_arg = eval(RUN_EXECUTABLE[@language])
-    output = `#{run_arg}`
+    output = `#{run_arg} #{arguments}`
     unless $?.success?
       @out.puts "ERROR running #{executable}"
       @out.puts output
@@ -415,7 +417,7 @@ EOS
     print "Choose a language (#{LANGUAGES.join(' ')}): "
     language = gets.strip.downcase
     unless LANGUAGES.include?(language)
-      raise "not an option: #{llanguage}"
+      raise "not an option: #{language}"
     end
     language
   end
@@ -448,6 +450,11 @@ EOS
 
   def get_command(line)
     case line.strip
+    when /^#args\s*/
+      ["arguments", $']
+    when /^#(a\w*)\s*/
+      cmd, arg = $1, $'
+      /^#{cmd}/.match("arguments") ? ["arguments", arg] : nil
     when /^#(c.*)$/
       cmd = $1
       /^#{cmd}/.match("class") ? ["class", nil] : nil
@@ -492,6 +499,8 @@ EOS
   def process_command(lines, line)
     cmd,cmd_arg = get_command(line)
     case cmd
+    when 'arguments'
+      lines.arguments = cmd_arg
     when 'class'
       lines.location = 'C'
     when 'debug'
@@ -538,18 +547,18 @@ EOS
     cmd
   end
 
-  def process_line(lines, line)
+  def process_line(sess, line)
     begin
-      new_lines = lines.dup
-      new_lines.add(line, lines.location)
-      source = make_source(new_lines)
-      executable = compile_executable(source, lines.libraries)
-      new_lines.output = run_executable(executable)
-      puts_output(new_lines.output, lines.output)
+      new_sess = sess.dup
+      new_sess.add(line, sess.location)
+      source = make_source(new_sess)
+      executable = compile_executable(source, sess.libraries)
+      new_sess.output = run_executable(executable, sess.arguments)
+      puts_output(new_sess.output, sess.output)
     rescue CompilationError, ExecutionError
-      return lines
+      return sess
     end
-    new_lines
+    new_sess
   end
 
   def get_line(lines)
@@ -610,7 +619,7 @@ end
 class Crepl
   class Session
 
-    attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location
+    attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location, :arguments
 
     CLASS_TESTS_JAVA =
       [ lambda {|l| /\A\s*(public|protected|private)\s+enum\b/.match(l) },
@@ -640,6 +649,7 @@ class Crepl
       @header_lines = []
       @class_lines = []
       @main_lines = []
+      @arguments = ''
     end
     
     def dup
@@ -648,6 +658,7 @@ class Crepl
       retval.class_lines = @class_lines.dup
       retval.main_lines = @main_lines.dup
       retval.libraries = @libraries.dup
+      retval.arguments = @arguments.dup
       retval
     end
 
