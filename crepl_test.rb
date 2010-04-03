@@ -67,13 +67,17 @@ EOF
     assert_equal(1, lines.size);
     assert_equal(10, lines[0].to_i);
   end
-  
-  def test_java1
-    lines = eval_print(@java, 'System.out.println("hello world");')
-    assert_equal(1, lines.size)
-    assert_equal('hello world', lines[0])
-  end
 
+  def test_c3
+    ENV['HOME'] = '/Users/cgrubb'
+    lines = eval_print(@c, <<'EOF')
+#include <stdlib.h>
+p(getenv("HOME"));
+EOF
+    assert_equal(1, lines.size)
+    assert_equal('/Users/cgrubb', lines[0])
+  end
+  
   def test_csharp1
     lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
     assert_equal(1, lines.size)
@@ -88,6 +92,12 @@ EOF
 
   def test_objc1
     lines = eval_print(@objc, 'printf("hello world\\n");')
+    assert_equal(1, lines.size)
+    assert_equal('hello world', lines[0])
+  end
+
+  def test_java1
+    lines = eval_print(@java, 'System.out.println("hello world");')
     assert_equal(1, lines.size)
     assert_equal('hello world', lines[0])
   end

@@ -544,7 +544,7 @@ EOS
     else
       @out.puts "Unrecognized command: #{line}"
     end
-    cmd
+    return lines, cmd
   end
 
   def process_line(sess, line)
@@ -607,7 +607,7 @@ EOS
       end
       break if line.nil?
       if /\A\s*#/.match(line)
-        cmd = process_command(lines, line)
+        lines, cmd = process_command(lines, line)
       else
         lines = process_line(lines, line)
       end
