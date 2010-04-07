@@ -36,7 +36,7 @@ class Crepl
 #class             Put the following line outside the main method, but inside class body.
                    For C, C++, and Objective C, the line is put outside the main function
                    and after the header lines.
-#delete  <LINE_NO> Delete the incated line number
+#delete  <LINE_NO> Delete the indicated line number
 #dir     <DIR>     Change to indicated directory.  This clears the session.
 #header            Put the following line outside the class body.  For C, C++, and
                    Objective C, the line goes ahead of all function definitions.
@@ -106,6 +106,7 @@ EOS
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 <% header_lines.each do |header| %>
 <%= '#include ' + quote_header(header) %>
 <% end %>
