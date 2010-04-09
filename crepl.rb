@@ -238,6 +238,11 @@ p(char *msg) {
 }
 
 void
+ps(NSString *s) {
+  puts([s UTF8String]);
+}
+
+void
 pf(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
