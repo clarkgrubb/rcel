@@ -383,7 +383,7 @@ EOS
       system("#{EDITOR} #{files.join(' ')}")
       object = compile_library(source)
       if files.inject {|m,f| m and File.exists?(f) }
-        lines.libraries << source
+        lines.libraries << object
         lines.libraries.uniq!
         lines.header_lines << header if header
         lines.header_lines.uniq!
@@ -449,8 +449,9 @@ EOS
 
   def prompt_for_language
     print "Choose a language (#{LANGUAGES.join(' ')}): "
-    language = gets.strip.downcase
-    unless LANGUAGES.include?(language)
+    input = gets.strip.downcase
+    language = LANGUAGES.detect { |lang| input[0,3] == lang[0,3] }
+    unless language
       raise "not an option: #{language}"
     end
     language
@@ -751,7 +752,14 @@ class Crepl
 end  
 
 if $0 == __FILE__
-  crepl = Crepl.new(ARGV)
+  opts = {}
+  ARGV.each do |arg|
+    if /^--/.match(arg)
+      opts[$'.to_sym] = true
+    end
+  end
+  ARGV.reject! { |arg| /^--/.match(arg) }
+  crepl = Crepl.new(ARGV, opts)
   crepl.language = crepl.prompt_for_language unless crepl.language
   crepl.directory = "#{crepl.language}-project" unless crepl.directory
   puts "Working in directory #{crepl.directory} using language #{crepl.language}.  Type #help to see list of commands."
