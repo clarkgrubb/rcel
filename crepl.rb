@@ -71,7 +71,7 @@ EOS
   COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
   COMPILE_LIBRARY = {}
   COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
-  COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} #{library}"'
+  COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{library}"'
   COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
   COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
@@ -191,7 +191,7 @@ public class Main {
   <%= line %>
   <% end %>
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Throwable {
     <% main_lines.each do |line| %>
     <%= line %>
     <% end %>

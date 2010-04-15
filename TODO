@@ -38,3 +38,7 @@
 - rename lines and new_lines to sess and new_sess
 - what happens when running #include with java and C#?
 - implement #rm-library
+- package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
+- implement import (java) and using (c++)
+- library conveniences: in java, set package.  In C++, add #include of header in source
+- package clex and crepl as gems
