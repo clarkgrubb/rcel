@@ -623,6 +623,14 @@ EOS
     Dir.new(@directory).each { |f| lines.header_lines << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
     @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
   end
+
+  def get_location(line)
+    if /\A\s*(import|using)\b/.match(line)
+      'H'
+    else
+      ' '
+    end
+  end
   
   def repl(opts = {})
     raise "no language" unless @language
@@ -644,6 +652,7 @@ EOS
       if /\A\s*#/.match(line)
         lines, cmd = process_command(lines, line)
       else
+        lines.location = get_location(line)
         lines = process_line(lines, line)
       end
       lines.location = ' ' unless ['class','header'].include?(cmd)
