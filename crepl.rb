@@ -646,7 +646,7 @@ EOS
       else
         lines = process_line(lines, line)
       end
-      lines.location = ' ' unless cmd == 'class'
+      lines.location = ' ' unless ['class','header'].include?(cmd)
     end
   end
 end
