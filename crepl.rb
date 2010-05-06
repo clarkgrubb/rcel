@@ -537,7 +537,7 @@ EOS
     when 'arguments'
       lines.arguments = cmd_arg
     when 'class'
-      lines.location = 'C'
+      lines.next_location = lines.location = 'C'
     when 'debug'
       @debug = !@debug
     when 'delete'
@@ -550,7 +550,7 @@ EOS
     when 'directory'
       set_directory(lines, cmd_arg)
     when 'header'
-      lines.location = 'H'
+      lines.next_location = lines.location = 'H'
     when 'help'
       help
     when 'include'
@@ -653,8 +653,9 @@ EOS
       if /\A\s*#/.match(line)
         lines, cmd = process_command(lines, line)
       else
-        lines.location = get_location(line)
+        lines.location = lines.next_location || get_location(line)
         lines = process_line(lines, line)
+        lines.next_location = nil
       end
       lines.location = ' ' unless ['class','header'].include?(cmd)
     end
@@ -664,7 +665,7 @@ end
 class Crepl
   class Session
 
-    attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location, :arguments
+    attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location, :arguments, :next_location
 
     CLASS_TESTS_JAVA =
       [ lambda {|l| /\A\s*(public|protected|private)\s+enum\b/.match(l) },
