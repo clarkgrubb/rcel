@@ -23,13 +23,14 @@
 - (done) ability to define a function or method and have it go to the class line position;
   can code recognize a func/meth definition, or do we need to use a command for this?
 
+- get #class to work in C
 - generate a Makefile, Antfile, NAntfile
 - ability to specify libraries
 - if using to create a library, should also be able to create the unit test for the library
 - change executable name to dirname
 - framework: C++: stl or boost
 - for C#, link regex ddl
-- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with COMPILE_EXECUTABLE
+- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
 - ability to reload lines from previous session
 - automatically include dependencies
@@ -42,3 +43,5 @@
 - implement import (java) and using (c++)
 - library conveniences: in java, set package.  In C++, add #include of header in source
 - package clex and crepl as gems
+- p,pf -> puts,printf
+- templates for main.c etc in separate files

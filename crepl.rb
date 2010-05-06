@@ -109,7 +109,7 @@ EOS
 #include <stdlib.h>
 #include <regex.h>
 <% header_lines.each do |header| %>
-<%= '#include ' + quote_header(header) %>
+<%= header %>
 <% end %>
 
 void
@@ -229,7 +229,7 @@ EOS
   MAIN_TEMPLATE[OBJC] =<<EOS
 #import <Foundation/Foundation.h>
 <% header_lines.each do |header| %>
-<%= '#include ' + quote_header(header) %>
+<%= header %>
 <% end %>
 
 void
@@ -266,7 +266,7 @@ EOS
   MAIN_TEMPLATE[CPP] = <<EOS
 #include <iostream>
 <% header_lines.each do |header| %>
-<%= '#include ' + quote_header(header) %>
+<%= header %>
 <% end %>
 using namespace std;
 
@@ -558,7 +558,8 @@ EOS
         @out.puts "DEBUG line #{line}" if @debug
         @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
         new_lines = lines.dup
-        new_lines.header_lines << cmd_arg unless new_lines.header_lines.include?(cmd_arg)
+        # deduplication could be foiled by whitespace variation
+        new_lines.header_lines << line unless new_lines.header_lines.include?(line)
         source = make_source(new_lines)
         executable = compile_executable(source, new_lines.libraries)
         lines = new_lines
