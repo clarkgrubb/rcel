@@ -24,17 +24,17 @@
   can code recognize a func/meth definition, or do we need to use a command for this?
 - (done) get #class to work in C
 
+- write unit tests for crepl.rb that edit libraries
 - generate a Makefile, Antfile, NAntfile
-- ability to specify libraries
+- ability to specify libraries to link from repl prompt
 - if using to create a library, should also be able to create the unit test for the library
 - change executable name to dirname
+- unit test #lib
 - framework: C++: stl or boost
-- for C#, link regex ddl
 - in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
-- ability to reload lines from previous session
+- ability to reload lines from previous session (save history, and give option to reload at startup)
 - automatically include dependencies
-- unit test #lib
 - run from within emacs
 - rename lines and new_lines to sess and new_sess
 - what happens when running #include with java and C#?
@@ -43,5 +43,6 @@
 - implement import (java) and using (c++)
 - library conveniences: in java, set package.  In C++, add #include of header in source
 - package clex and crepl as gems
+- test on windows, ruby 1.8
 - p,pf -> puts,printf
-- templates for main.c etc in separate files
+- templates for main.c, main.cpp,  etc in separate files

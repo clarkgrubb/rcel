@@ -385,7 +385,7 @@ EOS
       if files.inject {|m,f| m and File.exists?(f) }
         lines.libraries << object
         lines.libraries.uniq!
-        lines.header_lines << header if header
+        lines.header_lines << "#include \"#{header}\"" if header
         lines.header_lines.uniq!
       else
         @out.puts "no library created"
@@ -621,7 +621,7 @@ EOS
     lines.clear
     Dir.new(@directory).each { |f| lines.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
     @out.puts "Using libraries: #{lines.libraries.join(' ')}" unless lines.libraries.empty?
-    Dir.new(@directory).each { |f| lines.header_lines << f if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
+    Dir.new(@directory).each { |f| lines.header_lines << "#include \"#{f}\"" if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
     @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
   end
 
