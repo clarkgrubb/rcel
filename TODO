@@ -23,26 +23,32 @@
 - (done) ability to define a function or method and have it go to the class line position;
   can code recognize a func/meth definition, or do we need to use a command for this?
 - (done) get #class to work in C
+- (done) write unit tests for crepl.rb that edit libraries
+- (done) implement #rm-library
 
-- write unit tests for crepl.rb that edit libraries
+- rename lines and new_lines to sess and new_sess
+- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
+- p,pf -> puts,printf
+- templates for main.c, main.cpp,  etc in separate files
+- remove match functions
+- unit tests for all #commands, in all languages
+- if #delete is used to remove an #include line, does it work?
+
+- ability to reload lines from previous session (save history, and give option to reload at startup)
+
+- check if needed executables (gcc, java(c), mono, (g)mcs exist...)
+- test on windows, ruby 1.8
+- package clex and crepl as gems
+- remove backticks: which: 53; compile_executable: 325; compile_library: 349; run_exectuable: 360
+
 - generate a Makefile, Antfile, NAntfile
 - ability to specify libraries to link from repl prompt
 - if using to create a library, should also be able to create the unit test for the library
-- change executable name to dirname
-- unit test #lib
-- framework: C++: stl or boost
-- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
-- check if needed executables (gcc, java(c), mono, (g)mcs exist...)
-- ability to reload lines from previous session (save history, and give option to reload at startup)
 - automatically include dependencies
-- run from within emacs
-- rename lines and new_lines to sess and new_sess
-- what happens when running #include with java and C#?
-- implement #rm-library
+- library conveniences: in java, set package.  In C++, add #include of header in source, guard macros
 - package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
+- what happens when running #include with java and C#? (error msg should happen)
+- implement #rm-lib
+
 - implement import (java) and using (c++)
-- library conveniences: in java, set package.  In C++, add #include of header in source
-- package clex and crepl as gems
-- test on windows, ruby 1.8
-- p,pf -> puts,printf
-- templates for main.c, main.cpp,  etc in separate files
+- default editor probably shouldn't be emacs

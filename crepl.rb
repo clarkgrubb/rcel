@@ -371,7 +371,14 @@ EOS
     /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
   end
 
-  def edit_library(lines, name)
+  def edit_library(lines, args)
+    if @test
+      name = args.shift
+      tmp_source = args.shift
+      tmp_header = args.shift
+    else
+      name = args
+    end
     base_name = get_base_name(name)
     if base_name
       files = []
@@ -380,7 +387,15 @@ EOS
       header = HEADER_SUFFIX[@language] ? "#{base_name}.#{HEADER_SUFFIX[@language]}" : nil
       files << header if header
       files.map! { |f| File.join(@directory,f) }
-      system("#{EDITOR} #{files.join(' ')}")
+      if @test
+        FileUtils.cp(tmp_source, File.join(@directory, source))
+        if header
+          raise "must specify header file in test for language #{@language}" unless tmp_header
+          FileUtils.cp(tmp_header, File.join(@directory, header))
+        end
+      else
+        system("#{EDITOR} #{files.join(' ')}")
+      end
       object = compile_library(source)
       if files.inject {|m,f| m and File.exists?(f) }
         lines.libraries << object
@@ -399,12 +414,17 @@ EOS
     base_name = get_base_name(name)
     if base_name
       source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
-      FileUtils.rm(source)
+      FileUtils.rm(File.join(@directory, source), :force=>true)
       lines.libraries.delete(source)
       if HEADER_SUFFIX[@language]
         header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
-        FileUtils.rm(header)
-        lines.header_lines.delete(header)
+        FileUtils.rm(File.join(@directory, header), :force=>true)
+        lines.header_lines.reject! { |hdr| /\"#{header}\"/.match(hdr) }
+      end
+      if OBJECT_SUFFIX[@language]
+        object = "#{base_name}.#{OBJECT_SUFFIX[@language]}"
+        FileUtils.rm(File.join(@directory, object), :force=>true)
+        lines.libraries.delete(object)
       end
     else
       raise LibraryEditError.new("bad Name: #{name}")
@@ -459,6 +479,7 @@ EOS
 
   def initialize(args, opts={})
     @debug = opts[:debug]
+    @test = opts[:test]
     case args.length
     when 2
       if LANGUAGES.include?(args[0].downcase)
@@ -511,9 +532,15 @@ EOS
     when /^#(i.*)\s+(["<].+[">])$/
       cmd, arg = $1, $2
       /^#{cmd}/.match("include") ? ["include", arg] : nil
-    when /^#(lib.*)\s+([\w.]+)$/
-      cmd, arg = $1, $2
-      /^#{cmd}/.match("library") ? ["library", arg] : nil
+    when /^#(lib.*)\s+([\w.]+)/
+      cmd, arg, rest = $1, $2, $'
+      if @test
+        args = [arg] + rest.split
+        raise "must specify extra files when using lib in test" unless args.size > 1
+        /^#{cmd}/.match("library") ? ["library", args] : nil
+      else
+        /^#{cmd}/.match("library") ? ["library", arg] : nil
+      end
     when /^#(lis.*)$/
       cmd = $1
       /^#{cmd}/.match("list") ? ["list", nil] : nil
@@ -522,7 +549,7 @@ EOS
       /^#{cmd}/.match("main") ? ["main", nil] : nil
     when /^#(rm-l.*)\s+([\w.]+)$/
       cmd, arg = $1, $2
-      /^#{cmd}/.match("rm-library") ? ["rm-library", nil] : nil
+      /^#{cmd}/.match("rm-library") ? ["rm-library", arg] : nil
     when /^#(remove-l.*)\s+([\w.]+)$/
       cmd, arg = $1, $2
          /^#{cmd}/.match("remove-library") ? ["rm-library", nil] : nil
@@ -572,11 +599,11 @@ EOS
       rescue CompilationError
       end
     when 'list'
-      lines.list
+      lines.list(@out)
     when 'main'
       lines.location = 'M'
     when 'rm-library'
-      raise "implement me"
+      rm_library(lines, cmd_arg)
     else
       @out.puts "Unrecognized command: #{line}"
     end
@@ -617,6 +644,7 @@ EOS
   end
 
   def set_directory(lines, directory)
+    @directory = directory
     FileUtils.mkdir_p @directory
     lines.clear
     Dir.new(@directory).each { |f| lines.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
@@ -733,15 +761,15 @@ class Crepl
       end
     end
 
-    def list
+    def list(fout=$stdout)
       lineno = 1
       [@header_lines, @class_lines, @main_lines].each do |a|
         a.each do |ll|
           ll.split("\n").each_with_index do |l,i|
             if 0 == i
-              puts "%03d> %s" % [ lineno, l]
+              fout.puts "%03d> %s" % [ lineno, l]
             else
-              puts "...> %s" % l
+              fout.puts "...> %s" % l
             end
             lineno += 1
           end
