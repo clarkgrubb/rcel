@@ -31,7 +31,7 @@
 - p,pf -> puts,printf
 - templates for main.c, main.cpp,  etc in separate files
 - remove match functions
-- unit tests for all #commands, in all languages
+- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, delete, dir, header, help, include, list, rm-lib
 - if #delete is used to remove an #include line, does it work?
 
 - ability to reload lines from previous session (save history, and give option to reload at startup)

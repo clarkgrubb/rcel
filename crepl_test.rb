@@ -210,43 +210,8 @@ EOF
     assert(!File.exists?('c-test/foo.h'), 'foo.h should have been deleted')
     assert(!File.exists?('c-test/foo.o'), 'foo.o should have been deleted')
   end
-  
-  def test_csharp1
-    lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
-    assert_equal(1, lines.size)
-    assert_equal('hello world', lines[0])
-  end
 
-  def test_cpp1
-    lines = eval_print(@cpp, 'cout << "hello world" << endl;')
-    assert_equal(1, lines.size)
-    assert_equal('hello world', lines[0])
-  end
-
-  def test_objc1
-    lines = eval_print(@objc, 'printf("hello world\\n");')
-    assert_equal(1, lines.size)
-    assert_equal('hello world', lines[0])
-  end
-
-  def test_java1
-    lines = eval_print(@java, 'System.out.println("hello world");')
-    assert_equal(1, lines.size)
-    assert_equal('hello world', lines[0])
-  end
-
-  # test a java enum, which must be placed outside the Main method
-  # but inside the class definition.
-  def test_java2
-    lines = eval_print(@java, <<EOF)
-public enum DayOfWeek { MON, TUE, WED, THU, FRI, SAT, SUN };
-pf("Day of Week: %s", DayOfWeek.TUE);
-EOF
-    assert_equal(1, lines.size)
-    assert_equal("Day of Week: TUE", lines[0])
-  end
-
-  def test_arg1
+  def test_c12
     lines = eval_print(@c, <<EOF)
 #arg hello
 p(argv[1]);
@@ -255,7 +220,7 @@ EOF
     assert_equal("hello", lines[0])
   end
 
-  def test_arg2
+  def test_c13
     lines = eval_print(@c, <<EOF)
 #arg hello there
 pf("%d", argc);
@@ -268,4 +233,163 @@ EOF
       assert_equal(line, lines[i], "expected line #{i+1} to be #{line}")
     end
   end
+
+  # simple test of C++
+  def test_cpp01
+    lines = eval_print(@cpp, 'cout << "hello world" << endl;')
+    assert_equal(1, lines.size)
+    assert_equal('hello world', lines[0])
+  end
+
+  # arguments command should set argc and argv
+  def test_cpp02
+    lines = eval_print(@cpp, <<'EOF')
+#arguments one two three
+cout << argc << " " << argv[3] << " " << argv[2] << " " << argv[1] << endl;
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("4 three two one", lines[0]);
+  end
+
+  # lib command with C++
+  def test_cpp03
+    header = make_file(<<'EOF')
+class Adder {
+    public:
+    static int add(int first, int second);
+};
+EOF
+    source = make_file(<<'EOF')
+#include "Adder.h"
+int Adder::add(int first, int second) {
+  return first+second;
+}
+EOF
+    lines = eval_print(@cpp, <<"EOF")
+#lib Adder #{source.path} #{header.path}
+cout << Adder::add(7, 13) << endl;
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("20", lines[0])
+  end
+  
+  # simple test of objective c
+  def test_objc01
+    lines = eval_print(@objc, 'printf("hello world\\n");')
+    assert_equal(1, lines.size)
+    assert_equal('hello world', lines[0])
+  end
+
+  # arguments command should set argc and argv
+  def test_objc02
+    lines = eval_print(@objc, <<'EOF')
+#arguments one two three
+printf("%d %s %s %s", argc, argv[3], argv[2], argv[1]);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("4 three two one", lines[0])
+  end
+
+  # lib command with Objective C
+  def test_objc03
+    header = make_file(<<'EOF')
+#import <Foundation/Foundation.h>
+@interface Adder : NSObject {
+}
++(int) add: (int)first: (int) second;
+@end
+EOF
+    source = make_file(<<'EOF')
+#include "Adder.h"
+@implementation Adder
++(int) add: (int) first: (int) second {
+  return first+second;
+}
+@end
+EOF
+    lines = eval_print(@objc, <<"EOF")
+#lib Adder #{source.path} #{header.path}
+pf("%d", [Adder add:  7: 13]);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("20", lines[0])
+  end
+  
+  # hello world java
+  def test_java01
+    lines = eval_print(@java, 'System.out.println("hello world");')
+    assert_equal(1, lines.size)
+    assert_equal('hello world', lines[0])
+  end
+
+  # test a java enum, which must be placed outside the Main method
+  # but inside the class definition.
+  def test_java02
+    lines = eval_print(@java, <<EOF)
+public enum DayOfWeek { MON, TUE, WED, THU, FRI, SAT, SUN };
+pf("Day of Week: %s", DayOfWeek.TUE);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("Day of Week: TUE", lines[0])
+  end
+
+  # test arguments command sets argv array
+  def test_java03
+    lines = eval_print(@java, <<'EOF')
+#arguments real stuff
+pf("%s %s", argv[1], argv[0]);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("stuff real", lines[0])
+  end
+
+  # test lib with java
+  def test_java04
+    source = make_file(<<'EOF')
+public class Adder {
+  public static int add(int first, int second) {
+    return first+second;
+  }
+}
+EOF
+    lines = eval_print(@java, <<"EOF")
+#lib Adder #{source.path}
+pf("%d", Adder.add(7,13));
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("20", lines[0])    
+  end
+  
+  def test_csharp01
+    lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
+    assert_equal(1, lines.size)
+    assert_equal('hello world', lines[0])
+  end
+
+  # test arguments command sets argv array
+  def test_csharp02
+    lines = eval_print(@csharp, <<'EOF')
+#arguments hello dolly
+System.Console.WriteLine("{1} {0}", argv[0], argv[1]);
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("dolly hello", lines[0])
+  end
 end
+
+  # test lib with c sharp
+  def test_csharp03
+    source = make_file(<<'EOF')
+public class Adder {
+  public static int add(int first, int second) {
+    return first+second;
+  }
+}
+EOF
+    lines = eval_print(@csharp, <<"EOF")
+#lib Adder #{source.path}
+pf("{0}", Adder.add(11,17));
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("28", lines[0])    
+  end

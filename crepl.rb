@@ -32,7 +32,9 @@ class Crepl
   def help
     @out.puts <<EOS
 #arguments         Set the command line arguments.  Type them separated by whitespace as
-                   if you were invoking the command from a shell.
+                   if you were invoking the command from a shell.  The arguments are
+                   available in the array variable argv.  In C, C++, and Objective C the
+                   size of the array is in argc.
 #class             Put the following line outside the main method, but inside class body.
                    For C, C++, and Objective C, the line is put outside the main function
                    and after the header lines.
@@ -191,7 +193,7 @@ public class Main {
   <%= line %>
   <% end %>
 
-  public static void main(String[] args) throws Throwable {
+  public static void main(String[] argv) throws Throwable {
     <% main_lines.each do |line| %>
     <%= line %>
     <% end %>
@@ -218,7 +220,7 @@ public class Top {
   <%= line %>
   <% end %>
 
-  public static void Main(string[] args) {
+  public static void Main(string[] argv) {
     <% main_lines.each do |line| %>
     <%= line %>
     <% end %>
@@ -286,7 +288,7 @@ pf(const char *fmt, ...) {
 <%= line %>
 <% end %>
 
-int main() {
+int main(int argc, char** argv) {
   <% main_lines.each do |line| %>
   <%= line %>
   <% end %>
