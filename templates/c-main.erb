@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <regex.h>
+<% header_lines.each do |header| %>
+<%= header %>
+<% end %>
+
+void
+p(char *msg) {
+  puts(msg);
+}
+
+void
+pf(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+}
+
+int
+match_opts(char *pattern, char *str, int opts) {
+  regex_t re;
+  if(regcomp(&re, pattern, opts)) {
+    p("error in regex");
+    return(-1);
+  }
+  int retval = (regexec(&re, str, (size_t)0, NULL, 0) == 0);
+  regfree(&re);
+  return(retval);
+}
+
+int
+match(char *pattern, char *str) {
+  return(match_opts(pattern, str, REG_EXTENDED));
+}
+
+int
+matchi(char *pattern, char *str) {
+  return(match_opts(pattern, str, REG_EXTENDED | REG_ICASE));
+}
+
+int
+matchm(char *pattern, char *str) {
+  return(match_opts(pattern, str, REG_EXTENDED | REG_NEWLINE));
+}
+
+<% class_lines.each do |line| %>
+<%= line %>
+<% end %>
+
+int
+main (int argc, char **argv) {
+  <% main_lines.each do |line| %>
+  <%= line %>
+  <% end %>
+  return 0;
+}

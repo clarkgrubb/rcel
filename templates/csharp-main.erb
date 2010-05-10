@@ -1,0 +1,23 @@
+<% header_lines.each do |line| %>
+<%= line %>
+<% end %>
+
+public class Top {
+  public static void p(System.String msg) {
+    System.Console.WriteLine(msg);
+  }
+
+  public static void pf(System.String fmt, params object[] list) {
+    System.Console.WriteLine(string.Format(fmt, list));
+  }
+
+  <% class_lines.each do |line| %>
+  <%= line %>
+  <% end %>
+
+  public static void Main(string[] argv) {
+    <% main_lines.each do |line| %>
+    <%= line %>
+    <% end %>
+  }
+}

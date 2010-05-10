@@ -19,17 +19,16 @@
 - (done) don't require directory to be specified at startup: use a default value
 - (done) ability to display and edit lines
 - (done) if all lines deleted, flush output
-- package as a ruby gem
 - (done) ability to define a function or method and have it go to the class line position;
   can code recognize a func/meth definition, or do we need to use a command for this?
 - (done) get #class to work in C
 - (done) write unit tests for crepl.rb that edit libraries
 - (done) implement #rm-library
+- (done) templates for main.c, main.cpp,  etc in separate files
 
 - rename lines and new_lines to sess and new_sess
 - in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
 - p,pf -> puts,printf
-- templates for main.c, main.cpp,  etc in separate files
 - remove match functions
 - unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, delete, dir, header, help, include, list, rm-lib
 - if #delete is used to remove an #include line, does it work?

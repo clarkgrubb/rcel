@@ -1,0 +1,28 @@
+#include <iostream>
+<% header_lines.each do |header| %>
+<%= header %>
+<% end %>
+using namespace std;
+
+void
+p(const char *msg) {
+  puts(msg);
+}
+
+void
+pf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+}
+
+<% class_lines.each do |line| %>
+<%= line %>
+<% end %>
+
+int main(int argc, char** argv) {
+  <% main_lines.each do |line| %>
+  <%= line %>
+  <% end %>
+  return 0;
+}
