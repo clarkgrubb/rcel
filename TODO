@@ -25,10 +25,10 @@
 - (done) write unit tests for crepl.rb that edit libraries
 - (done) implement #rm-library
 - (done) templates for main.c, main.cpp,  etc in separate files
+- (done) p,pf -> puts,printf
+- (done) remove match functions
 
 - rename lines and new_lines to sess and new_sess
-- p,pf -> puts,printf
-- remove match functions
 - unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, delete, dir, header, help, include, list, rm-lib
 - if #delete is used to remove an #include line, does it work?
 
@@ -49,4 +49,4 @@
 - implement #rm-lib
 
 - implement import (java) and using (c++)
-- default editor probably shouldn't be emacs
+- prompt for editor if EDITOR env variable not set

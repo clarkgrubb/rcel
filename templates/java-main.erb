@@ -6,15 +6,15 @@ import static java.lang.System.out;
 
 public class Main {
 
-  public static void p(String msg) {
+  public static void puts(String msg) {
     System.out.println(msg);
   }
 
-  public static void pf(String fmt) {
+  public static void printf(String fmt) {
     System.out.printf(fmt);
   }
-  <% (1..5).each do |args| %>
-  public static void pf(String fmt, <%= (1..args).map { |i| 'Object o' + i.to_s }.join(', ') %>) {
+  <% (1..7).each do |args| %>
+  public static void printf(String fmt, <%= (1..args).map { |i| 'Object o' + i.to_s }.join(', ') %>) {
     System.out.printf(fmt, <%= (1..args).map { |i| 'o' + i.to_s }.join(', ') %>);
   }
   <% end %>

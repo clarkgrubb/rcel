@@ -71,7 +71,7 @@ int add(int first, ...) {
   va_end(ap);
   return first + second;
 }
-pf("%d\n", add(3,7));
+printf("%d\n", add(3,7));
 EOF
     assert_equal(1, lines.size);
     assert_equal(10, lines[0].to_i);
@@ -82,7 +82,7 @@ EOF
     ENV['HOME'] = '/Users/cgrubb'
     lines = eval_print(@c, <<'EOF')
 #include <stdlib.h>
-p(getenv("HOME"));
+puts(getenv("HOME"));
 EOF
     assert_equal(1, lines.size)
     assert_equal('/Users/cgrubb', lines[0])
@@ -214,7 +214,7 @@ EOF
   def test_c12
     lines = eval_print(@c, <<EOF)
 #arg hello
-p(argv[1]);
+puts(argv[1]);
 EOF
     assert_equal(1, lines.size)
     assert_equal("hello", lines[0])
@@ -223,9 +223,9 @@ EOF
   def test_c13
     lines = eval_print(@c, <<EOF)
 #arg hello there
-pf("%d", argc);
-p(argv[1]);
-p(argv[2]);
+printf("%d", argc);
+puts(argv[1]);
+puts(argv[2]);
   end
 EOF
     assert_equal(3, lines.size)
@@ -309,7 +309,7 @@ EOF
 EOF
     lines = eval_print(@objc, <<"EOF")
 #lib Adder #{source.path} #{header.path}
-pf("%d", [Adder add:  7: 13]);
+printf("%d", [Adder add:  7: 13]);
 EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])
@@ -327,7 +327,7 @@ EOF
   def test_java02
     lines = eval_print(@java, <<EOF)
 public enum DayOfWeek { MON, TUE, WED, THU, FRI, SAT, SUN };
-pf("Day of Week: %s", DayOfWeek.TUE);
+printf("Day of Week: %s", DayOfWeek.TUE);
 EOF
     assert_equal(1, lines.size)
     assert_equal("Day of Week: TUE", lines[0])
@@ -337,7 +337,7 @@ EOF
   def test_java03
     lines = eval_print(@java, <<'EOF')
 #arguments real stuff
-pf("%s %s", argv[1], argv[0]);
+printf("%s %s", argv[1], argv[0]);
 EOF
     assert_equal(1, lines.size)
     assert_equal("stuff real", lines[0])
@@ -354,7 +354,7 @@ public class Adder {
 EOF
     lines = eval_print(@java, <<"EOF")
 #lib Adder #{source.path}
-pf("%d", Adder.add(7,13));
+printf("%d", Adder.add(7,13));
 EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])    
@@ -388,7 +388,7 @@ public class Adder {
 EOF
     lines = eval_print(@csharp, <<"EOF")
 #lib Adder #{source.path}
-pf("{0}", Adder.add(11,17));
+printf("{0}", Adder.add(11,17));
 EOF
     assert_equal(1, lines.size)
     assert_equal("28", lines[0])    
