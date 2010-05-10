@@ -27,7 +27,6 @@
 - (done) templates for main.c, main.cpp,  etc in separate files
 
 - rename lines and new_lines to sess and new_sess
-- in code, replace COMPILE_EXECUTABLE[LANGUAGE] with language.compile_executable (an object for each language)
 - p,pf -> puts,printf
 - remove match functions
 - unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, delete, dir, header, help, include, list, rm-lib

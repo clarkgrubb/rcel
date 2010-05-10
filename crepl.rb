@@ -30,27 +30,7 @@ class Crepl
   end
 
   def help
-    @out.puts <<EOS
-#arguments         Set the command line arguments.  Type them separated by whitespace as
-                   if you were invoking the command from a shell.  The arguments are
-                   available in the array variable argv.  In C, C++, and Objective C the
-                   size of the array is in argc.
-#class             Put the following line outside the main method, but inside class body.
-                   For C, C++, and Objective C, the line is put outside the main function
-                   and after the header lines.
-#delete  <LINE_NO> Delete the indicated line number
-#dir     <DIR>     Change to indicated directory.  This clears the session.
-#header            Put the following line outside the class body.  For C, C++, and
-                   Objective C, the line goes ahead of all function definitions.
-#help              Display this menu
-#include <HEADER>  Include the indicated header file.
-#library <LIBRARY> Edit the indicated library.
-#list              List all header lines, class lines, and main lines.
-#main              Put the following line inside the main method.  Normally it is not
-                   necessary to specify this; will override built-in logic for determing
-                   line position.
-#rm-lib  <LIBRARY> Remove the indicated library.
-EOS
+    @out.puts File.read(File.join(TEMPLATE_DIR,'help.txt'))
   end
 
   GCC = `which gcc`.chomp
@@ -61,10 +41,7 @@ EOS
   MCS = `which gmcs`.chomp
 
   EDITOR = ENV['EDITOR'] || 'emacs'
-  GCC_INCLUDE = {}
-  GCC_INCLUDE[C] = ''
-  GCC_INCLUDE[CPP] = ''
-  GCC_INCLUDE[OBJC] = ''
+  GCC_INCLUDE = {C=>'',CPP=>'',OBJC=>''}
   COMPILE_EXECUTABLE = {}
   COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
   COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{File.join(@directory, SOURCE[JAVALANG])}"'
@@ -77,19 +54,8 @@ EOS
   COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
   COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
-  # TODO other languages
-  EXECUTABLE = {}
-  EXECUTABLE[C] = 'main'
-  EXECUTABLE[JAVALANG] = 'Main'
-  EXECUTABLE[CSHARP] = 'Top.exe'
-  EXECUTABLE[OBJC] = 'main'
-  EXECUTABLE[CPP] = 'main'
-  SOURCE = {}
-  SOURCE[C] = 'main.c'
-  SOURCE[JAVALANG] = 'Main.java'
-  SOURCE[CSHARP] = 'Top.cs'
-  SOURCE[OBJC] = 'main.m'
-  SOURCE[CPP] = 'main.cpp'
+  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main'}
+  SOURCE = {C=>'main.c',JAVALANG=>'Main.java',CSHARP=>'Top.cs',OBJC=>'main.m',CPP=>'main.cpp'}
   RUN_EXECUTABLE = {}
   RUN_EXECUTABLE[C] = '"#{executable}"'
   RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{@directory} #{EXECUTABLE[JAVALANG]}"'
@@ -101,7 +67,6 @@ EOS
   OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
   LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
   CLEX_LANGUAGE = { C => :c, JAVALANG => :java, CSHARP => :csharp, OBJC => :objective_c, CPP => :cpp }
-
   MAIN_TEMPLATE = {}
   TEMPLATE_DIR = File.join(File.dirname(__FILE__), 'templates')
   MAIN_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-main.erb'))
