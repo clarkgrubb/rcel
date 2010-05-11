@@ -3,13 +3,6 @@
 <%= header %>
 <% end %>
 
-void
-pf(char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vprintf(fmt, ap);
-}
-
 <% class_lines.each do |line| %>
 <%= line %>
 <% end %>

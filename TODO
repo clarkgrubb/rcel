@@ -27,10 +27,13 @@
 - (done) templates for main.c, main.cpp,  etc in separate files
 - (done) p,pf -> puts,printf
 - (done) remove match functions
+- (done) rename lines and new_lines to sess and new_sess
 
-- rename lines and new_lines to sess and new_sess
-- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, delete, dir, header, help, include, list, rm-lib
+- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, dir, header, help, include, rm-lib
 - if #delete is used to remove an #include line, does it work?
+- add #function, #method (synonyms for #class)
+- identify all header section and class section keywords: import, using, class (can java, C#, C++ class be inside a function?)
+- implement import (java) and using (c++)
 
 - ability to reload lines from previous session (save history, and give option to reload at startup)
 
@@ -46,7 +49,5 @@
 - library conveniences: in java, set package.  In C++, add #include of header in source, guard macros
 - package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
 - what happens when running #include with java and C#? (error msg should happen)
-- implement #rm-lib
 
-- implement import (java) and using (c++)
 - prompt for editor if EDITOR env variable not set

@@ -83,12 +83,12 @@ class Crepl
     end
   end
 
-  def make_source(lines)  
+  def make_source(session)  
     stdout = $stdout
     source = File.join(@directory,SOURCE[@language])
-    header_lines = lines.header_lines
-    class_lines = lines.class_lines
-    main_lines = lines.main_lines
+    header_lines = session.header_lines
+    class_lines = session.class_lines
+    main_lines = session.main_lines
     begin
       $stdout = File.open(source,'w')
       ERB.new(MAIN_TEMPLATE[@language]).run(binding)
@@ -152,7 +152,7 @@ class Crepl
     /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
   end
 
-  def edit_library(lines, args)
+  def edit_library(session, args)
     if @test
       name = args.shift
       tmp_source = args.shift
@@ -179,10 +179,10 @@ class Crepl
       end
       object = compile_library(source)
       if files.inject {|m,f| m and File.exists?(f) }
-        lines.libraries << object
-        lines.libraries.uniq!
-        lines.header_lines << "#include \"#{header}\"" if header
-        lines.header_lines.uniq!
+        session.libraries << object
+        session.libraries.uniq!
+        session.header_lines << "#include \"#{header}\"" if header
+        session.header_lines.uniq!
       else
         @out.puts "no library created"
       end
@@ -191,21 +191,21 @@ class Crepl
     end  
   end
 
-  def rm_library(lines, name)
+  def rm_library(session, name)
     base_name = get_base_name(name)
     if base_name
       source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
       FileUtils.rm(File.join(@directory, source), :force=>true)
-      lines.libraries.delete(source)
+      session.libraries.delete(source)
       if HEADER_SUFFIX[@language]
         header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
         FileUtils.rm(File.join(@directory, header), :force=>true)
-        lines.header_lines.reject! { |hdr| /\"#{header}\"/.match(hdr) }
+        session.header_lines.reject! { |hdr| /\"#{header}\"/.match(hdr) }
       end
       if OBJECT_SUFFIX[@language]
         object = "#{base_name}.#{OBJECT_SUFFIX[@language]}"
         FileUtils.rm(File.join(@directory, object), :force=>true)
-        lines.libraries.delete(object)
+        session.libraries.delete(object)
       end
     else
       raise LibraryEditError.new("bad Name: #{name}")
@@ -339,78 +339,78 @@ class Crepl
     end
   end
   
-  def process_command(lines, line)
+  def process_command(session, line)
     cmd,cmd_arg = get_command(line)
     case cmd
     when 'arguments'
-      lines.arguments = cmd_arg
+      session.arguments = cmd_arg
     when 'class'
-      lines.next_location = lines.location = 'C'
+      session.next_location = session.location = 'C'
     when 'debug'
       @debug = !@debug
     when 'delete'
       begin
-        lines.delete(cmd_arg)
-        last_output = '' if 0 == lines.size
+        session.delete(cmd_arg)
+        last_output = '' if 0 == session.size
       rescue
         @out.puts "couldn't delete line #{cmd_arg}: #{$!.message}"
       end
     when 'directory'
-      set_directory(lines, cmd_arg)
+      set_directory(session, cmd_arg)
     when 'header'
-      lines.next_location = lines.location = 'H'
+      session.next_location = session.location = 'H'
     when 'help'
       help
     when 'include'
       begin
         @out.puts "DEBUG line #{line}" if @debug
         @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
-        new_lines = lines.dup
+        new_session = session.dup
         # deduplication could be foiled by whitespace variation
-        new_lines.header_lines << line unless new_lines.header_lines.include?(line)
-        source = make_source(new_lines)
-        executable = compile_executable(source, new_lines.libraries)
-        lines = new_lines
+        new_session.header_lines << line unless new_session.header_lines.include?(line)
+        source = make_source(new_session)
+        executable = compile_executable(source, new_session.libraries)
+        session = new_session
       rescue CompilationError
         @out.puts "failed to include #{cmd_arg}"
       end
     when 'library'
       begin
-        edit_library(lines, cmd_arg)
+        edit_library(session, cmd_arg)
       rescue CompilationError
       end
     when 'list'
-      lines.list(@out)
+      session.list(@out)
     when 'main'
-      lines.location = 'M'
+      session.location = 'M'
     when 'rm-library'
-      rm_library(lines, cmd_arg)
+      rm_library(session, cmd_arg)
     else
       @out.puts "Unrecognized command: #{line}"
     end
-    return lines, cmd
+    return session, cmd
   end
 
-  def process_line(sess, line)
+  def process_line(session, line)
     begin
-      new_sess = sess.dup
-      new_sess.add(line, sess.location)
-      source = make_source(new_sess)
-      executable = compile_executable(source, sess.libraries)
-      new_sess.output = run_executable(executable, sess.arguments)
-      puts_output(new_sess.output, sess.output)
+      new_session = session.dup
+      new_session.add(line, session.location)
+      source = make_source(new_session)
+      executable = compile_executable(source, session.libraries)
+      new_session.output = run_executable(executable, session.arguments)
+      puts_output(new_session.output, session.output)
     rescue CompilationError, ExecutionError
-      return sess
+      return session
     end
-    new_sess
+    new_session
   end
 
-  def get_line(lines)
+  def get_line(session)
     line = ''
     continued_line = false
     loop do
       if @in == $stdin
-        part = readline("#{continued_line ? "#{lines.location}..." : ("#{lines.location}%03d" % (lines.size + 1))}> ", true)
+        part = readline("#{continued_line ? "#{lines.location}..." : ("#{session.location}%03d" % (session.size + 1))}> ", true)
       else
         part = @in.gets
       end
@@ -424,14 +424,14 @@ class Crepl
     end
   end
 
-  def set_directory(lines, directory)
+  def set_directory(session, directory)
     @directory = directory
     FileUtils.mkdir_p @directory
-    lines.clear
-    Dir.new(@directory).each { |f| lines.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
-    @out.puts "Using libraries: #{lines.libraries.join(' ')}" unless lines.libraries.empty?
-    Dir.new(@directory).each { |f| lines.header_lines << "#include \"#{f}\"" if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
-    @out.puts "Using headers: #{lines.header_lines.join(' ')}" unless lines.header_lines.empty?
+    session.clear
+    Dir.new(@directory).each { |f| session.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
+    @out.puts "Using libraries: #{session.libraries.join(' ')}" unless session.libraries.empty?
+    Dir.new(@directory).each { |f| session.header_lines << "#include \"#{f}\"" if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
+    @out.puts "Using headers: #{session.header_lines.join(' ')}" unless session.header_lines.empty?
   end
 
   def get_location(line)
@@ -448,25 +448,25 @@ class Crepl
     @out = opts[:output] || $stdout
     @in = opts[:input] || $stdin
     @clex = Clex.new(CLEX_LANGUAGE[@language])
-    lines = Session.new(@language)
-    set_directory(lines, @directory)
+    session = Session.new(@language)
+    set_directory(session, @directory)
     loop do
       cmd = nil
       begin
-        line = get_line(lines)
+        line = get_line(session)
       rescue ParseError
         @out.puts "clex reports that input doesn't lex: #{$!.message}"
         next
       end
       break if line.nil?
       if /\A\s*#/.match(line)
-        lines, cmd = process_command(lines, line)
+        session, cmd = process_command(session, line)
       else
-        lines.location = lines.next_location || get_location(line)
-        lines = process_line(lines, line)
-        lines.next_location = nil
+        session.location = session.next_location || get_location(line)
+        session = process_line(session, line)
+        session.next_location = nil
       end
-      lines.location = ' ' unless ['class','header'].include?(cmd)
+      session.location = ' ' unless ['class','header'].include?(cmd)
     end
   end
 end

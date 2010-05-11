@@ -272,7 +272,21 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])
   end
-  
+
+  # test delete and list
+  def test_cpp04
+    lines = eval_print(@cpp, <<'EOF')
+cout << "hello" << endl;
+cout << "goodbye" << endl;
+#delete 001
+#list
+EOF
+    assert_equal(3, lines.size)
+    assert_equal("hello", lines[0])
+    assert_equal("goodbye", lines[1])
+    assert_equal('001> cout << "goodbye" << endl;', lines[2])
+  end
+
   # simple test of objective c
   def test_objc01
     lines = eval_print(@objc, 'printf("hello world\\n");')
@@ -280,6 +294,8 @@ EOF
     assert_equal('hello world', lines[0])
   end
 
+  
+  
   # arguments command should set argc and argv
   def test_objc02
     lines = eval_print(@objc, <<'EOF')
@@ -313,6 +329,20 @@ printf("%d", [Adder add:  7: 13]);
 EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])
+  end
+
+  # test delete and list
+  def test_objc04
+    lines = eval_print(@objc, <<'EOF')
+printf("hello\n");
+printf("goodbye\n");
+#delete 001
+#list
+EOF
+    assert_equal(3, lines.size)
+    assert_equal("hello", lines[0])
+    assert_equal("goodbye", lines[1])
+    assert_equal('001> printf("goodbye\\n");', lines[2])
   end
   
   # hello world java
@@ -359,6 +389,20 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])    
   end
+
+  # test delete and list
+  def test_java05
+    lines = eval_print(@java, <<'EOF')
+printf("hello\n");
+printf("goodbye\n");
+#delete 001
+#list
+EOF
+    assert_equal(3, lines.size)
+    assert_equal("hello", lines[0])
+    assert_equal("goodbye", lines[1])
+    assert_equal('001> printf("goodbye\\n");', lines[2])
+  end
   
   def test_csharp01
     lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
@@ -392,4 +436,18 @@ printf("{0}", Adder.add(11,17));
 EOF
     assert_equal(1, lines.size)
     assert_equal("28", lines[0])    
+  end
+
+    # test delete and list
+  def test_csharp04
+    lines = eval_print(@csharp, <<'EOF')
+printf("hello\n");
+printf("goodbye\n");
+#delete 001
+#list
+EOF
+    assert_equal(3, lines.size)
+    assert_equal("hello", lines[0])
+    assert_equal("goodbye", lines[1])
+    assert_equal('001> printf("goodbye\\n");', lines[2])
   end
