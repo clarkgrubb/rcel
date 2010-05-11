@@ -29,7 +29,7 @@
 - (done) remove match functions
 - (done) rename lines and new_lines to sess and new_sess
 
-- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, dir, header, help, include, rm-lib
+- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, header, include, rm-lib
 - if #delete is used to remove an #include line, does it work?
 - add #function, #method (synonyms for #class)
 - identify all header section and class section keywords: import, using, class (can java, C#, C++ class be inside a function?)

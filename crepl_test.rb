@@ -21,6 +21,7 @@ class Test::Unit::TestCase
     :cpp => 'cpp-test',
     :objc => 'objective-c-test'
   }
+  ALTERNATE_DIRECTORY = 'alt-test'
   
   def setup
     @repl = {}
@@ -28,6 +29,7 @@ class Test::Unit::TestCase
       FileUtils.rm_rf(DIRECTORIES[key])
       @repl[key] = Crepl.new([lang, DIRECTORIES[key]], :test=>true)
     end
+    FileUtils.rm_rf(ALTERNATE_DIRECTORY)
     @c = @repl[:c]
     @java = @repl[:java]
     @csharp = @repl[:csharp]
@@ -129,15 +131,15 @@ EOF
     assert_equal("hello there", lines[1])
   end
 
-  # test dir command in C
+  # test dir command
   def test_c07
-    lines = eval_print(@c, <<'EOF')
-#dir c-dir-test
+    lines = eval_print(@c, <<"EOF")
+#dir #{ALTERNATE_DIRECTORY}
 printf("does it work");
 EOF
     assert_equal(1, lines.size)
     assert_equal("does it work", lines[0])
-    assert(File.exists?("c-dir-test/main.c"))
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.c"))
   end
 
   # test header command in C
@@ -287,6 +289,28 @@ EOF
     assert_equal('001> cout << "goodbye" << endl;', lines[2])
   end
 
+  # test help command
+  def test_cpp05
+    lines = eval_print(@cpp, <<'EOF')
+#help
+EOF
+    cmds = lines.select { |l| /^\#/.match(l) }.map { |l| /^\#([A-Z0-9a-z\-_]+)/.match(l) ? $1 : l }
+    %w( arguments class delete dir header help include library list main rm-lib ).each do |cmd|
+      assert(cmds.include?(cmd), "expected to find command #{cmd} in output")
+    end
+  end
+
+  # test dir command
+  def test_cpp06
+    lines = eval_print(@cpp, <<"EOF")
+#dir #{ALTERNATE_DIRECTORY}
+printf("does it work");
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("does it work", lines[0])
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.cpp"))
+  end
+
   # simple test of objective c
   def test_objc01
     lines = eval_print(@objc, 'printf("hello world\\n");')
@@ -343,6 +367,28 @@ EOF
     assert_equal("hello", lines[0])
     assert_equal("goodbye", lines[1])
     assert_equal('001> printf("goodbye\\n");', lines[2])
+  end
+
+  # test help command
+  def test_objc05
+    lines = eval_print(@objc, <<'EOF')
+#help
+EOF
+    cmds = lines.select { |l| /^\#/.match(l) }.map { |l| /^\#([A-Z0-9a-z\-_]+)/.match(l) ? $1 : l }
+    %w( arguments class delete dir header help include library list main rm-lib ).each do |cmd|
+      assert(cmds.include?(cmd), "expected to find command #{cmd} in output")
+    end
+  end
+
+  # test dir command
+  def test_objc06
+    lines = eval_print(@objc, <<"EOF")
+#dir #{ALTERNATE_DIRECTORY}
+printf("does it work");
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("does it work", lines[0])
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.m"))
   end
   
   # hello world java
@@ -403,6 +449,28 @@ EOF
     assert_equal("goodbye", lines[1])
     assert_equal('001> printf("goodbye\\n");', lines[2])
   end
+
+  # test help command
+  def test_java06
+    lines = eval_print(@java, <<'EOF')
+#help
+EOF
+    cmds = lines.select { |l| /^\#/.match(l) }.map { |l| /^\#([A-Z0-9a-z\-_]+)/.match(l) ? $1 : l }
+    %w( arguments class delete dir header help include library list main rm-lib ).each do |cmd|
+      assert(cmds.include?(cmd), "expected to find command #{cmd} in output")
+    end
+  end
+
+  # test dir command
+  def test_java07
+    lines = eval_print(@java, <<"EOF")
+#dir #{ALTERNATE_DIRECTORY}
+printf("does it work");
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("does it work", lines[0])
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.java"))
+  end
   
   def test_csharp01
     lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
@@ -451,3 +519,26 @@ EOF
     assert_equal("goodbye", lines[1])
     assert_equal('001> printf("goodbye\\n");', lines[2])
   end
+
+    # test help command
+  def test_csharp05
+    lines = eval_print(@csharp, <<'EOF')
+#help
+EOF
+    cmds = lines.select { |l| /^\#/.match(l) }.map { |l| /^\#([A-Z0-9a-z\-_]+)/.match(l) ? $1 : l }
+    %w( arguments class delete dir header help include library list main rm-lib ).each do |cmd|
+      assert(cmds.include?(cmd), "expected to find command #{cmd} in output")
+    end
+  end
+
+    # test dir command
+  def test_csharp06
+    lines = eval_print(@csharp, <<"EOF")
+#dir #{ALTERNATE_DIRECTORY}
+printf("does it work");
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("does it work", lines[0])
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/Top.cs"))
+  end
+
