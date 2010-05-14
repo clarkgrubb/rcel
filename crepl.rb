@@ -74,7 +74,17 @@ class Crepl
   MAIN_TEMPLATE[CSHARP] = File.read(File.join(TEMPLATE_DIR, 'csharp-main.erb'))
   MAIN_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-main.erb'))
   MAIN_TEMPLATE[CPP] = File.read(File.join(TEMPLATE_DIR, 'cpp-main.erb'))
-
+  LIBRARY_SOURCE_TEMPLATE = {}
+  LIBRARY_HEADER_TEMPLATE = {}
+  LIBRARY_SOURCE_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-library-source.erb'))
+  LIBRARY_HEADER_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-library-header.erb'))
+  LIBRARY_SOURCE_TEMPLATE[CPP] = File.read(File.join(TEMPLATE_DIR, 'cpp-library-source.erb'))
+  LIBRARY_HEADER_TEMPLATE[CPP] = File.read(File.join(TEMPLATE_DIR, 'cpp-library-header.erb'))
+  LIBRARY_SOURCE_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-library-source.erb'))
+  LIBRARY_HEADER_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-library-header.erb'))
+  LIBRARY_SOURCE_TEMPLATE[JAVALANG] = File.read(File.join(TEMPLATE_DIR, 'java-library-source.erb'))
+  LIBRARY_SOURCE_TEMPLATE[CSHARP] = File.read(File.join(TEMPLATE_DIR, 'csharp-library-source.erb'))
+  
   def quote_header(header)
     if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
       header
@@ -97,6 +107,18 @@ class Crepl
       $stdout = stdout
     end
     source
+  end
+
+  def make_library_file(session, template, file, library)
+    return if File.exists?(file)
+    stdout = $stdout
+    begin
+      $stdout = File.open(file, 'w')
+      ERB.new(template).run(binding)
+      $stdout.flush
+    ensure
+      $stdout = stdout
+    end
   end
 
   def compile_executable(source, libraries)
@@ -164,10 +186,13 @@ class Crepl
     if base_name
       files = []
       source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
-      files << source
+      source_path = File.join(@directory, source)
+      files << source_path
       header = HEADER_SUFFIX[@language] ? "#{base_name}.#{HEADER_SUFFIX[@language]}" : nil
-      files << header if header
-      files.map! { |f| File.join(@directory,f) }
+      if header
+        header_path = File.join(@directory, header)
+        files << header_path
+      end
       if @test
         FileUtils.cp(tmp_source, File.join(@directory, source))
         if header
@@ -175,6 +200,10 @@ class Crepl
           FileUtils.cp(tmp_header, File.join(@directory, header))
         end
       else
+        make_library_file(session, LIBRARY_SOURCE_TEMPLATE[@language], source_path, base_name)
+        if header
+          make_library_file(session, LIBRARY_HEADER_TEMPLATE[@language], header_path, base_name)
+        end
         system("#{EDITOR} #{files.join(' ')}")
       end
       object = compile_library(source)
@@ -410,7 +439,7 @@ class Crepl
     continued_line = false
     loop do
       if @in == $stdin
-        part = readline("#{continued_line ? "#{lines.location}..." : ("#{session.location}%03d" % (session.size + 1))}> ", true)
+        part = readline("#{continued_line ? "#{session.location}..." : ("#{session.location}%03d" % (session.size + 1))}> ", true)
       else
         part = @in.gets
       end

@@ -28,12 +28,13 @@
 - (done) p,pf -> puts,printf
 - (done) remove match functions
 - (done) rename lines and new_lines to sess and new_sess
+- (done) if #delete is used to remove an #include line, does it work?: yes
+- (done) library conveniences: In C/C++/ObjC, add #include of header in source, guard macros
 
 - unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, header, include, rm-lib
-- if #delete is used to remove an #include line, does it work?
 - add #function, #method (synonyms for #class)
 - identify all header section and class section keywords: import, using, class (can java, C#, C++ class be inside a function?)
-- implement import (java) and using (c++)
+- implement import,package (java) and using (c++)
 
 - ability to reload lines from previous session (save history, and give option to reload at startup)
 
@@ -45,8 +46,8 @@
 - generate a Makefile, Antfile, NAntfile
 - ability to specify libraries to link from repl prompt
 - if using to create a library, should also be able to create the unit test for the library
+- java library convenenience: if #lib path.to.lib, set package and create sudirs
 - automatically include dependencies
-- library conveniences: in java, set package.  In C++, add #include of header in source, guard macros
 - package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
 - what happens when running #include with java and C#? (error msg should happen)
 
