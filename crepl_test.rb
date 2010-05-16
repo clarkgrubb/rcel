@@ -471,6 +471,25 @@ EOF
     assert_equal("does it work", lines[0])
     assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.java"))
   end
+
+  # test package and import
+  def test_java08
+    source = make_file(<<'EOF')
+package path.to;
+public class Adder {
+  public static int add(int first, int second) {
+    return first+second;
+  }
+}
+EOF
+    lines = eval_print(@java, <<"EOF")
+#lib path.to.Adder #{source.path}
+import path.to.*;
+printf("%d", Adder.add(7,13));
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("20", lines[0])    
+  end
   
   def test_csharp01
     lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
@@ -487,7 +506,6 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("dolly hello", lines[0])
   end
-end
 
   # test lib with c sharp
   def test_csharp03
@@ -542,3 +560,27 @@ EOF
     assert(File.exists?("#{ALTERNATE_DIRECTORY}/Top.cs"))
   end
 
+  # test namespace and using
+  def test_csharp07
+    source = make_file(<<'EOF')
+namespace path {
+  namespace to {
+    public class Adder {
+      public static int add(int first, int second) {
+        return first+second;
+      }
+    }
+  }
+}
+EOF
+    lines = eval_print(@csharp, <<"EOF")
+#lib path.to.Adder #{source.path}
+using path.to;
+printf("{0}", Adder.add(11,17));
+EOF
+    library_file = File.join(DIRECTORIES[:csharp], 'Adder.cs')
+    assert(File.exists?(library_file), "expected file #{library_file} to exist")
+    assert_equal(1, lines.size)
+    assert_equal("28", lines[0])    
+  end
+end

@@ -84,6 +84,8 @@ class Crepl
   LIBRARY_HEADER_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-library-header.erb'))
   LIBRARY_SOURCE_TEMPLATE[JAVALANG] = File.read(File.join(TEMPLATE_DIR, 'java-library-source.erb'))
   LIBRARY_SOURCE_TEMPLATE[CSHARP] = File.read(File.join(TEMPLATE_DIR, 'csharp-library-source.erb'))
+  HEADER_KEYWORDS = { C => [], CPP => [], OBJC => [], JAVALANG => %w( import ), CSHARP => %w( using ) }
+  NAMESPACE_SEPARATOR = { C => nil, OBJC => nil, CPP => '::', JAVALANG => '.', CSHARP => '.' }
   
   def quote_header(header)
     if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
@@ -109,7 +111,9 @@ class Crepl
     source
   end
 
-  def make_library_file(session, template, file, library)
+  def make_library_file(session, template, file, name_array)
+    namespace_array = name_array.dup
+    library = namespace_array.pop
     return if File.exists?(file)
     stdout = $stdout
     begin
@@ -122,7 +126,7 @@ class Crepl
   end
 
   def compile_executable(source, libraries)
-    all_libraries = source_to_object(libraries).map { |lib| File.join(@directory, lib) }.join(LIBRARY_CONNECTOR[@language])
+    all_libraries = source_to_object(libraries).join(LIBRARY_CONNECTOR[@language])
     executable = File.join(@directory, EXECUTABLE[@language])
     compile_arg = eval(COMPILE_EXECUTABLE[@language], binding)
     @out.puts "DEBUG compile_executable: #{compile_arg}" if @debug
@@ -143,10 +147,8 @@ class Crepl
     end
   end
 
-  def compile_library(library_basename)
-    compiled_library_basename = source_to_object(library_basename)
-    compiled_library = File.join(@directory, compiled_library_basename)
-    library = File.join(@directory, library_basename)
+  def compile_library(library)
+    compiled_library = source_to_object(library)
     compile_arg = eval(COMPILE_LIBRARY[@language])
     @out.puts "DEBUG compile_library: #{compile_arg}" if @debug
     output = `#{compile_arg}`
@@ -155,7 +157,7 @@ class Crepl
       @out.puts output
       raise CompilationError
     end
-    compiled_library_basename
+    compiled_library
   end
 
   def run_executable(executable, arguments)
@@ -169,11 +171,27 @@ class Crepl
     output   
   end
 
-  def get_base_name(name)
+  def get_name_array(name)
     suffix = HEADER_SUFFIX[@language] ? "(#{HEADER_SUFFIX[@language]}|#{SOURCE_SUFFIX[@language]})" : "(#{SOURCE_SUFFIX[@language]})"
-    /^(.+)(\.#{suffix})?$/.match(name) ? $1: nil
+    fully_qualified_name = name[/^(.+)(\.#{suffix})?$/, 1]
+    raise LibraryEditError.new("bad name: #{name}") unless fully_qualified_name
+    NAMESPACE_SEPARATOR[@language] ? fully_qualified_name.split(NAMESPACE_SEPARATOR[@language]) : [fully_qualified_name]
   end
 
+  def get_file_path(root, namespace_array, file)
+    namespace_array = [] unless JAVALANG == @language
+    dir = File.join(root, *namespace_array)
+    FileUtils.mkdir_p(dir)
+    File.join(dir, file)
+  end
+
+  def get_base_name(name)
+    namespace_array = get_name_array(name)
+    base_name = namespace_array.pop
+    namespace_array = [] unless JAVALANG == @language
+    File.join(*namespace_array, base_name)
+  end
+  
   def edit_library(session, args)
     if @test
       name = args.shift
@@ -182,62 +200,56 @@ class Crepl
     else
       name = args
     end
-    base_name = get_base_name(name)
-    if base_name
-      files = []
-      source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
-      source_path = File.join(@directory, source)
-      files << source_path
-      header = HEADER_SUFFIX[@language] ? "#{base_name}.#{HEADER_SUFFIX[@language]}" : nil
+    name_array = get_name_array(name)
+    namespace_array = name_array.dup
+    base_name = namespace_array.pop
+    files = []
+    source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
+    source_path = get_file_path(@directory, namespace_array,  source)
+    files << source_path
+    header = HEADER_SUFFIX[@language] ? "#{base_name}.#{HEADER_SUFFIX[@language]}" : nil
+    if header
+      header_path = get_file_path(@directory, namespace_array, header)
+      files << header_path
+    end
+    if @test
+      FileUtils.cp(tmp_source, source_path)
       if header
-        header_path = File.join(@directory, header)
-        files << header_path
-      end
-      if @test
-        FileUtils.cp(tmp_source, File.join(@directory, source))
-        if header
-          raise "must specify header file in test for language #{@language}" unless tmp_header
-          FileUtils.cp(tmp_header, File.join(@directory, header))
-        end
-      else
-        make_library_file(session, LIBRARY_SOURCE_TEMPLATE[@language], source_path, base_name)
-        if header
-          make_library_file(session, LIBRARY_HEADER_TEMPLATE[@language], header_path, base_name)
-        end
-        system("#{EDITOR} #{files.join(' ')}")
-      end
-      object = compile_library(source)
-      if files.inject {|m,f| m and File.exists?(f) }
-        session.libraries << object
-        session.libraries.uniq!
-        session.header_lines << "#include \"#{header}\"" if header
-        session.header_lines.uniq!
-      else
-        @out.puts "no library created"
+        raise "must specify header file in test for language #{@language}" unless tmp_header
+        FileUtils.cp(tmp_header, header_path)
       end
     else
-      raise LibraryEditError.new("bad name: #{name}")
-    end  
+      make_library_file(session, LIBRARY_SOURCE_TEMPLATE[@language], source_path, name_array)
+      if header
+        make_library_file(session, LIBRARY_HEADER_TEMPLATE[@language], header_path, name_array)
+      end
+      system("#{EDITOR} #{files.join(' ')}")
+    end
+    object = compile_library(source_path)
+    if files.inject {|m,f| m and File.exists?(f) }
+      session.libraries << object
+      session.libraries.uniq!
+      session.header_lines << "#include \"#{header}\"" if header
+      session.header_lines.uniq!
+    else
+      @out.puts "no library created"
+    end
   end
 
   def rm_library(session, name)
     base_name = get_base_name(name)
-    if base_name
-      source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
-      FileUtils.rm(File.join(@directory, source), :force=>true)
-      session.libraries.delete(source)
-      if HEADER_SUFFIX[@language]
-        header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
-        FileUtils.rm(File.join(@directory, header), :force=>true)
-        session.header_lines.reject! { |hdr| /\"#{header}\"/.match(hdr) }
-      end
-      if OBJECT_SUFFIX[@language]
-        object = "#{base_name}.#{OBJECT_SUFFIX[@language]}"
-        FileUtils.rm(File.join(@directory, object), :force=>true)
-        session.libraries.delete(object)
-      end
-    else
-      raise LibraryEditError.new("bad Name: #{name}")
+    source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
+    FileUtils.rm(File.join(@directory, source), :force=>true)
+    session.libraries.reject! { |src| /\/#{source}$/.match(src) }
+    if HEADER_SUFFIX[@language]
+      header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
+      FileUtils.rm(File.join(@directory, header), :force=>true)
+      session.header_lines.reject! { |hdr| /\"#{header}\"/.match(hdr) }
+    end
+    if OBJECT_SUFFIX[@language]
+      object = "#{base_name}.#{OBJECT_SUFFIX[@language]}"
+      FileUtils.rm(File.join(@directory, object), :force=>true)
+      session.libraries.reject! { |obj| /\/#{object}$/.match(obj) }
     end
   end
   
@@ -342,7 +354,7 @@ class Crepl
     when /^#(i.*)\s+(["<].+[">])$/
       cmd, arg = $1, $2
       /^#{cmd}/.match("include") ? ["include", arg] : nil
-    when /^#(lib.*)\s+([\w.]+)/
+    when /^#(lib.*)\s+([\w.:]+)/
       cmd, arg, rest = $1, $2, $'
       if @test
         args = [arg] + rest.split
@@ -464,7 +476,8 @@ class Crepl
   end
 
   def get_location(line)
-    if /\A\s*(import|using)\b/.match(line)
+    first_word = line[/\A\s*(\w+)\b/,1]
+    if  HEADER_KEYWORDS[@language].include?(first_word)
       'H'
     else
       ' '

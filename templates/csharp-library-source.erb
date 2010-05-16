@@ -1,1 +1,8 @@
+<% namespace_array.each_with_index do |namespace, i| %><%= '  ' * i + 'namespace ' + namespace + ' {' %>
+<% end %><% indent = '  ' * namespace_array.size %>
+<%= indent %>public class <%= library %> {
 
+
+<%= indent %>}
+<% namespace_array.each_with_index do |namespace, i| %>
+<%= '  ' * (namespace_array.size-i-1) + '}' %><% end %>

@@ -1,1 +1,9 @@
 #include "<%= library %>.h"
+
+<% namespace_array.each_with_index do |namespace, i| %>
+<%= '  ' * i + 'namespace ' + namespace + ' {' %>
+<% end %>
+
+<% namespace_array.each_with_index do |namespace, i| %>
+<%= '  ' * (namespace_array.size-i-1) + '}' %>
+<% end %>

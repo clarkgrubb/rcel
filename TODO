@@ -30,13 +30,14 @@
 - (done) rename lines and new_lines to sess and new_sess
 - (done) if #delete is used to remove an #include line, does it work?: yes
 - (done) library conveniences: In C/C++/ObjC, add #include of header in source, guard macros
+- (done) implement import,package (java) and using (c++)
+- (done) identify header section and class section keywords: import, using
+- (done) package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
 
-- unit tests: LANGS: C++, Obj C, Java, C Sharp; COMMANDS: class, header, include, rm-lib
+- unit tests: LANGS: C++, ObjC, Java, C Sharp; COMMANDS: class, header, include, rm-lib
 - add #function, #method (synonyms for #class)
-- identify all header section and class section keywords: import, using, class (can java, C#, C++ class be inside a function?)
-- implement import,package (java) and using (c++)
-
-- ability to reload lines from previous session (save history, and give option to reload at startup)
+- identify header section and class section keywords: class (can java, C#, C++ class be inside a function?)
+- fill out library template for ObjC
 
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
 - test on windows, ruby 1.8
@@ -46,9 +47,10 @@
 - generate a Makefile, Antfile, NAntfile
 - ability to specify libraries to link from repl prompt
 - if using to create a library, should also be able to create the unit test for the library
-- java library convenenience: if #lib path.to.lib, set package and create sudirs
-- automatically include dependencies
-- package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
 - what happens when running #include with java and C#? (error msg should happen)
+- if #delete or output mismatch, give a "RERUNNING COMMANDS AND SHOWING ALL OUTPUT" msg
 
-- prompt for editor if EDITOR env variable not set
+- prompt for editor if EDITOR env variable not set and set the env variable accordingly
+
+- ability to reload lines from previous session (save history, and give option to reload at startup)
+- automatically include dependencies
