@@ -240,7 +240,6 @@ class Crepl
     base_name = get_base_name(name)
     source = "#{base_name}.#{SOURCE_SUFFIX[@language]}"
     FileUtils.rm(File.join(@directory, source), :force=>true)
-    session.libraries.reject! { |src| /\/#{source}$/.match(src) }
     if HEADER_SUFFIX[@language]
       header = "#{base_name}.#{HEADER_SUFFIX[@language]}"
       FileUtils.rm(File.join(@directory, header), :force=>true)
@@ -404,16 +403,20 @@ class Crepl
       help
     when 'include'
       begin
-        @out.puts "DEBUG line #{line}" if @debug
-        @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
-        new_session = session.dup
-        # deduplication could be foiled by whitespace variation
-        new_session.header_lines << line unless new_session.header_lines.include?(line)
-        source = make_source(new_session)
-        executable = compile_executable(source, new_session.libraries)
-        session = new_session
+        if [JAVALANG, CSHARP].include?(@language)
+          @out.puts "CREPL: #include not supported for #{@language.capitalize}"
+        else
+          @out.puts "DEBUG line #{line}" if @debug
+          @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
+          new_session = session.dup
+          # deduplication could be foiled by whitespace variation
+          new_session.header_lines << line unless new_session.header_lines.include?(line)
+          source = make_source(new_session)
+          executable = compile_executable(source, new_session.libraries)
+          session = new_session
+        end
       rescue CompilationError
-        @out.puts "failed to include #{cmd_arg}"
+        @out.puts "CREPL: failed to include #{cmd_arg}"
       end
     when 'library'
       begin
@@ -427,7 +430,7 @@ class Crepl
     when 'rm-library'
       rm_library(session, cmd_arg)
     else
-      @out.puts "Unrecognized command: #{line}"
+      @out.puts "CREPL: unrecognized command: #{line}"
     end
     return session, cmd
   end
@@ -469,7 +472,7 @@ class Crepl
     @directory = directory
     FileUtils.mkdir_p @directory
     session.clear
-    Dir.new(@directory).each { |f| session.libraries << f if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
+    Dir.new(@directory).each { |f| session.libraries << File.join(@directory, f) if f.match(/#{OBJECT_SUFFIX[@language]}$/) }
     @out.puts "Using libraries: #{session.libraries.join(' ')}" unless session.libraries.empty?
     Dir.new(@directory).each { |f| session.header_lines << "#include \"#{f}\"" if f.match(/#{HEADER_SUFFIX[@language]}$/) } if HEADER_SUFFIX[@language]
     @out.puts "Using headers: #{session.header_lines.join(' ')}" unless session.header_lines.empty?

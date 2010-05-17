@@ -311,14 +311,25 @@ EOF
     assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.cpp"))
   end
 
+  # test #include
+  def test_cpp07
+    lines = eval_print(@cpp, <<"EOF")
+#include <sstream>
+stringstream ss("7");
+int i;
+ss >> i;
+cout << i << endl;
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("7", lines[0])
+  end
+  
   # simple test of objective c
   def test_objc01
     lines = eval_print(@objc, 'printf("hello world\\n");')
     assert_equal(1, lines.size)
     assert_equal('hello world', lines[0])
   end
-
-  
   
   # arguments command should set argc and argv
   def test_objc02
@@ -389,6 +400,24 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("does it work", lines[0])
     assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.m"))
+  end
+
+  # test #include and #class in C
+  def test_objc07
+    lines = eval_print(@objc, <<'EOF')
+#include <stdarg.h>
+#class
+int add(int first, ...) {
+  va_list ap;
+  va_start(ap, first);
+  int second = va_arg(ap, int);
+  va_end(ap);
+  return first + second;
+}
+printf("%d\n", add(3,7));
+EOF
+    assert_equal(1, lines.size);
+    assert_equal(10, lines[0].to_i);
   end
   
   # hello world java
@@ -490,6 +519,15 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("20", lines[0])    
   end
+
+  # test #include causes error
+  def test_java09
+    lines = eval_print(@java, <<'EOF')
+#include <stdarg.h>
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("CREPL: #include not supported for Java", lines[0])
+  end
   
   def test_csharp01
     lines = eval_print(@csharp, 'System.Console.WriteLine("hello world");')
@@ -583,4 +621,14 @@ EOF
     assert_equal(1, lines.size)
     assert_equal("28", lines[0])    
   end
+
+  # test #include causes error
+  def test_csharp08
+    lines = eval_print(@csharp, <<'EOF')
+#include <stdarg.h>
+EOF
+    assert_equal(1, lines.size)
+    assert_equal("CREPL: #include not supported for C#", lines[0])
+  end
+  
 end

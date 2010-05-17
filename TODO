@@ -33,24 +33,23 @@
 - (done) implement import,package (java) and using (c++)
 - (done) identify header section and class section keywords: import, using
 - (done) package for java: if #lib path/to/file or path.to.file, subdirs created and package declaration inserted
+- (done) what happens when running #include with java and C#? (error msg should happen)
 
-- unit tests: LANGS: C++, ObjC, Java, C Sharp; COMMANDS: class, header, include, rm-lib
-- add #function, #method (synonyms for #class)
-- identify header section and class section keywords: class (can java, C#, C++ class be inside a function?)
+- unit tests: LANGS: C++, ObjC, Java, C Sharp; COMMANDS: class, header, rm-lib
+- add #function, #method, #member (synonyms for #class - an remove #class?)
+- identify header section and class section keywords: class (can java, C#, C++ class be inside a function?)  (prompt for nested or top level?)
 - fill out library template for ObjC
-
+- prompt for editor if EDITOR env variable not set and set the env variable accordingly
+- ability to specify libraries to link from repl prompt 
+- ability to specify library search path (class path) #classpath #libpath/#librarypath/#library_path (or #set LIBRARY_PATH=  #set CLASSPATH=)
 - check if needed executables (gcc, java(c), mono, (g)mcs exist...)
+- remove backticks: which: 53; compile_executable: 325; compile_library: 349; run_exectuable: 360
 - test on windows, ruby 1.8
 - package clex and crepl as gems
-- remove backticks: which: 53; compile_executable: 325; compile_library: 349; run_exectuable: 360
+- prefix all msgs from repl w/ "CREPL: "
+- instead of session.libraries << some_file, how about session.add_library(some_file) and session.rm_library(some_file), so that logic of full pathname can be shared
 
 - generate a Makefile, Antfile, NAntfile
-- ability to specify libraries to link from repl prompt
 - if using to create a library, should also be able to create the unit test for the library
-- what happens when running #include with java and C#? (error msg should happen)
-- if #delete or output mismatch, give a "RERUNNING COMMANDS AND SHOWING ALL OUTPUT" msg
+- if #delete or output mismatch, give a "CREPL: displaying output from entire command history" msg
 
-- prompt for editor if EDITOR env variable not set and set the env variable accordingly
-
-- ability to reload lines from previous session (save history, and give option to reload at startup)
-- automatically include dependencies
