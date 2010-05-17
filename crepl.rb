@@ -40,7 +40,6 @@ class Crepl
   MONO = `which mono`.chomp
   MCS = `which gmcs`.chomp
 
-  EDITOR = ENV['EDITOR'] || 'emacs'
   GCC_INCLUDE = {C=>'',CPP=>'',OBJC=>''}
   COMPILE_EXECUTABLE = {}
   COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
@@ -95,6 +94,19 @@ class Crepl
     end
   end
 
+  def set_editor(choice=nil)
+    unless choice
+      @out.print("CREPL: choose an editor [vi]: ")
+      choice = @in.gets.strip
+    end
+    ENV['EDITOR'] = /\S/.match(choice) ? choice : 'vi'
+  end
+  
+  def get_editor
+    set_editor unless ENV['EDITOR']
+    ENV['EDITOR']
+  end
+  
   def make_source(session)  
     stdout = $stdout
     source = File.join(@directory,SOURCE[@language])
@@ -223,7 +235,11 @@ class Crepl
       if header
         make_library_file(session, LIBRARY_HEADER_TEMPLATE[@language], header_path, name_array)
       end
-      system("#{EDITOR} #{files.join(' ')}")
+      unless system("#{get_editor} #{files.join(' ')}")
+        unsuccessful_editor = ENV['EDTIOR']
+        ENV['EDITOR'] = nil
+        raise LibraryEditError.new("error editing #{files.join(' ')}: #{unsuccessful_editor} failed")
+      end
     end
     object = compile_library(source_path)
     if files.inject {|m,f| m and File.exists?(f) }
@@ -421,7 +437,8 @@ class Crepl
     when 'library'
       begin
         edit_library(session, cmd_arg)
-      rescue CompilationError
+      rescue CompilationError, LibraryEditError
+        @out.puts "CREPL: failed to edit library"
       end
     when 'list'
       session.list(@out)
