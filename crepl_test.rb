@@ -498,7 +498,7 @@ printf("does it work");
 EOF
     assert_equal(1, lines.size)
     assert_equal("does it work", lines[0])
-    assert(File.exists?("#{ALTERNATE_DIRECTORY}/main.java"))
+    assert(File.exists?("#{ALTERNATE_DIRECTORY}/Main.java"), "Main.java not found")
   end
 
   # test package and import
