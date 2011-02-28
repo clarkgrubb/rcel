@@ -152,7 +152,7 @@ class Crepl
   end
 
   def source_to_object(arg)
-    if arg.respond_to?(:map)
+    if arg.kind_of?(Array)
       arg.map { |o| source_to_object(o) }
     else
       arg.sub(/#{SOURCE_SUFFIX[@language]}$/,  OBJECT_SUFFIX[@language])
@@ -201,7 +201,11 @@ class Crepl
     namespace_array = get_name_array(name)
     base_name = namespace_array.pop
     namespace_array = [] unless JAVALANG == @language
-    File.join(*namespace_array, base_name)
+    if namespace_array.empty?
+      base_name
+    else
+      File.join(namespace_array, base_name)
+    end
   end
   
   def edit_library(session, args)

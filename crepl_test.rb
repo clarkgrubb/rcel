@@ -5,7 +5,7 @@ require 'fileutils'
 require 'pp'
 require 'tempfile'
 
-class Test::Unit::TestCase
+class Test1 < Test::Unit::TestCase
 
   LANGUAGES = {
     :c => 'c',
