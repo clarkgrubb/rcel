@@ -4,6 +4,7 @@ require 'fileutils'
 require 'erb'
 require 'readline'
 require File.dirname(__FILE__) + '/clex.rb'
+require File.dirname(__FILE__) + '/fortran_lex.rb'
 require 'pp'
 
 class Rcel
@@ -12,7 +13,6 @@ class Rcel
 
   attr_accessor :language, :directory
   
-  class ParseError < StandardError; end
   class CompilationError < StandardError; end
   class ExecutionError < StandardError; end
   class LibraryEditError < StandardError; end
@@ -22,7 +22,8 @@ class Rcel
   JAVALANG = 'java'
   OBJC = 'objective-c'
   CPP = 'c++'
-  LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
+  FORTRAN95 = 'fortran95'
+  LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP, FORTRAN95 ]
   
   def usage
     puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: rcel.rb LANGUAGE PROJECT_DIR"
@@ -39,7 +40,8 @@ class Rcel
   JAVAC = `which javac`.chomp
   MONO = `which mono`.chomp
   MCS = `which gmcs`.chomp
-
+  GFORTRAN = `which gfortran`.chomp
+  
   GCC_INCLUDE = {C=>'',CPP=>'',OBJC=>''}
   COMPILE_EXECUTABLE = {}
   COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
@@ -47,25 +49,37 @@ class Rcel
   COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{all_libraries.empty? ? \'\': \'-reference:\'}#{all_libraries} #{File.join(@directory, SOURCE[CSHARP])}"'
   COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[@language]} -framework Foundation #{File.join(@directory, SOURCE[OBJC])} -o #{File.join(@directory, EXECUTABLE[OBJC])} #{all_libraries}"'
   COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
+  COMPILE_EXECUTABLE[FORTRAN95] = '"#{GFORTRAN} -o #{executable} #{source}"'
   COMPILE_LIBRARY = {}
   COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{library}"'
   COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
   COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
-  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main'}
-  SOURCE = {C=>'main.c',JAVALANG=>'Main.java',CSHARP=>'Top.cs',OBJC=>'main.m',CPP=>'main.cpp'}
+  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main',FORTRAN95=>'main'}
+  SOURCE = {C=>'main.c',
+    JAVALANG=>'Main.java',
+    CSHARP=>'Top.cs',
+    OBJC=>'main.m',
+    CPP=>'main.cpp',
+    FORTRAN95=>'main.f95'}
   RUN_EXECUTABLE = {}
   RUN_EXECUTABLE[C] = '"#{executable}"'
   RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{@directory} #{EXECUTABLE[JAVALANG]}"'
   RUN_EXECUTABLE[CSHARP] = '"#{MONO} #{File.join(@directory, EXECUTABLE[CSHARP])}"'
   RUN_EXECUTABLE[OBJC] = '"#{executable}"'
   RUN_EXECUTABLE[CPP] = '"#{executable}"'
-  SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp' }
+  RUN_EXECUTABLE[FORTRAN95] = '"#{executable}"'
+  SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp', FORTRAN95 => 'f95' }
   HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
-  OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o' }
+  OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o', FORTRAN95 => 'o' }
   LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
-  CLEX_LANGUAGE = { C => :c, JAVALANG => :java, CSHARP => :csharp, OBJC => :objective_c, CPP => :cpp }
+  LEX_LANGUAGE = { C => :c,
+    JAVALANG => :java,
+    CSHARP => :csharp,
+    OBJC => :objective_c,
+    CPP => :cpp,
+    FORTRAN95 => :fortran95}
   MAIN_TEMPLATE = {}
   TEMPLATE_DIR = File.join(File.dirname(__FILE__), 'templates')
   MAIN_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-main.erb'))
@@ -73,6 +87,7 @@ class Rcel
   MAIN_TEMPLATE[CSHARP] = File.read(File.join(TEMPLATE_DIR, 'csharp-main.erb'))
   MAIN_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-main.erb'))
   MAIN_TEMPLATE[CPP] = File.read(File.join(TEMPLATE_DIR, 'cpp-main.erb'))
+  MAIN_TEMPLATE[FORTRAN95] = File.read(File.join(TEMPLATE_DIR, 'fortran95-main.erb'))
   LIBRARY_SOURCE_TEMPLATE = {}
   LIBRARY_HEADER_TEMPLATE = {}
   LIBRARY_SOURCE_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-library-source.erb'))
@@ -83,8 +98,21 @@ class Rcel
   LIBRARY_HEADER_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-library-header.erb'))
   LIBRARY_SOURCE_TEMPLATE[JAVALANG] = File.read(File.join(TEMPLATE_DIR, 'java-library-source.erb'))
   LIBRARY_SOURCE_TEMPLATE[CSHARP] = File.read(File.join(TEMPLATE_DIR, 'csharp-library-source.erb'))
-  HEADER_KEYWORDS = { C => [], CPP => [], OBJC => [], JAVALANG => %w( import ), CSHARP => %w( using ) }
+  HEADER_KEYWORDS = { C => [],
+    CPP => [],
+    OBJC => [],
+    JAVALANG => %w( import ),
+    CSHARP => %w( using ),
+    FORTRAN95 => []}
   NAMESPACE_SEPARATOR = { C => nil, OBJC => nil, CPP => '::', JAVALANG => '.', CSHARP => '.' }
+
+  def lexer(lang)
+    if :fortran95 == lang
+      FortranLex.new(lang)
+    else
+      Clex.new(lang)
+    end
+  end
   
   def quote_header(header)
     if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
@@ -272,32 +300,9 @@ class Rcel
     end
   end
   
-  def braces_balanced?(tokens)
-    cnt = 0;
-    tokens.each do |token, value|
-      if :punctuator == token
-        case value
-        when '{'
-          cnt += 1
-        when '}'
-          cnt -= 1
-        else
-        end
-      end
-      raise ParseError.new("close brace without a preceding open brace") if cnt < 0
-    end
-    0 == cnt
-  end
-
   def line_complete?(line)
     return true if /\A\s*#/.match(line)
-    tokens = @clex.stream(line)
-    if tokens.size > 1 and braces_balanced?(tokens)
-      ult = tokens.pop
-      penult = tokens.pop
-      return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
-    end
-    false
+    @lexer.line_complete?(line)
   end
 
   def puts_output(output, last_output)
@@ -313,7 +318,7 @@ class Rcel
     input = gets.strip.downcase
     language = LANGUAGES.detect { |lang| input[0,3] == lang[0,3] }
     unless language
-      raise "not an option: #{language}"
+      raise "not an option: #{input}"
     end
     language
   end
@@ -513,15 +518,15 @@ class Rcel
     raise "no directory" unless @directory
     @out = opts[:output] || $stdout
     @in = opts[:input] || $stdin
-    @clex = Clex.new(CLEX_LANGUAGE[@language])
+    @lexer = lexer(LEX_LANGUAGE[@language])
     session = Session.new(@language)
     set_directory(session, @directory)
     loop do
       cmd = nil
       begin
         line = get_line(session)
-      rescue ParseError
-        @out.puts "clex reports that input doesn't lex: #{$!.message}"
+      rescue Clex::ParseError
+        @out.puts "lexer reports that input doesn't lex: #{$!.message}"
         next
       end
       break if line.nil?

@@ -2,6 +2,8 @@
 
 class Clex
 
+  class ParseError < StandardError; end
+
   def alternation_regex(a)
     a.map { |t| t.gsub(/([*+?|\/\\^])/,'\\\\\1') }.join('|')
   end
@@ -289,4 +291,31 @@ class Clex
     a
   end
 
+  def braces_balanced?(tokens)
+    cnt = 0;
+    tokens.each do |token, value|
+      if :punctuator == token
+        case value
+        when '{'
+          cnt += 1
+        when '}'
+          cnt -= 1
+        else
+        end
+      end
+      raise ParseError.new("close brace without a preceding open brace") if cnt < 0
+    end
+    0 == cnt
+  end
+  
+  def line_complete?(input)
+    tokens = stream(input)
+    if tokens.size > 1 and braces_balanced?(tokens)
+      ult = tokens.pop
+      penult = tokens.pop
+      return true if :end == ult.first and :punctuator == penult.first and [';','}'].include?(penult.last)
+    end
+    false
+  end
+  
 end
