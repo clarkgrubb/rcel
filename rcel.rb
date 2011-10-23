@@ -6,7 +6,7 @@ require 'readline'
 require File.dirname(__FILE__) + '/clex.rb'
 require 'pp'
 
-class Crepl
+class Rcel
   
   include Readline
 
@@ -25,7 +25,7 @@ class Crepl
   LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP ]
   
   def usage
-    puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: crepl.rb LANGUAGE PROJECT_DIR"
+    puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: rcel.rb LANGUAGE PROJECT_DIR"
     exit -1
   end
 
@@ -96,7 +96,7 @@ class Crepl
 
   def set_editor(choice=nil)
     unless choice
-      @out.print("CREPL: choose an editor [vi]: ")
+      @out.print("RCEL: choose an editor [vi]: ")
       choice = @in.gets.strip
     end
     ENV['EDITOR'] = /\S/.match(choice) ? choice : 'vi'
@@ -424,7 +424,7 @@ class Crepl
     when 'include'
       begin
         if [JAVALANG, CSHARP].include?(@language)
-          @out.puts "CREPL: #include not supported for #{@language.capitalize}"
+          @out.puts "RCEL: #include not supported for #{@language.capitalize}"
         else
           @out.puts "DEBUG line #{line}" if @debug
           @out.puts "DEBUG cmd_arg #{cmd_arg}" if @debug
@@ -436,13 +436,13 @@ class Crepl
           session = new_session
         end
       rescue CompilationError
-        @out.puts "CREPL: failed to include #{cmd_arg}"
+        @out.puts "RCEL: failed to include #{cmd_arg}"
       end
     when 'library'
       begin
         edit_library(session, cmd_arg)
       rescue CompilationError, LibraryEditError
-        @out.puts "CREPL: failed to edit library"
+        @out.puts "RCEL: failed to edit library"
       end
     when 'list'
       session.list(@out)
@@ -451,7 +451,7 @@ class Crepl
     when 'rm-library'
       rm_library(session, cmd_arg)
     else
-      @out.puts "CREPL: unrecognized command: #{line}"
+      @out.puts "RCEL: unrecognized command: #{line}"
     end
     return session, cmd
   end
@@ -537,7 +537,7 @@ class Crepl
   end
 end
 
-class Crepl
+class Rcel
   class Session
 
     attr_accessor :header_lines, :class_lines, :main_lines, :libraries, :output, :location, :arguments, :next_location
@@ -645,9 +645,9 @@ if $0 == __FILE__
     end
   end
   ARGV.reject! { |arg| /^--/.match(arg) }
-  crepl = Crepl.new(ARGV, opts)
-  crepl.language = crepl.prompt_for_language unless crepl.language
-  crepl.directory = "#{crepl.language}-project" unless crepl.directory
-  puts "Working in directory #{crepl.directory} using language #{crepl.language}.  Type #help to see list of commands."
-  crepl.repl
+  rcel = Rcel.new(ARGV, opts)
+  rcel.language = rcel.prompt_for_language unless rcel.language
+  rcel.directory = "#{rcel.language}-project" unless rcel.directory
+  puts "Working in directory #{rcel.directory} using language #{rcel.language}.  Type #help to see list of commands."
+  rcel.repl
 end

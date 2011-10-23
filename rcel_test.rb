@@ -1,4 +1,4 @@
-require 'crepl'
+require 'rcel'
 require 'stringio'
 require 'test/unit'
 require 'fileutils'
@@ -27,7 +27,7 @@ class Test1 < Test::Unit::TestCase
     @repl = {}
     LANGUAGES.each do |key, lang|
       FileUtils.rm_rf(DIRECTORIES[key])
-      @repl[key] = Crepl.new([lang, DIRECTORIES[key]], :test=>true)
+      @repl[key] = Rcel.new([lang, DIRECTORIES[key]], :test=>true)
     end
     FileUtils.rm_rf(ALTERNATE_DIRECTORY)
     @c = @repl[:c]
@@ -526,7 +526,7 @@ EOF
 #include <stdarg.h>
 EOF
     assert_equal(1, lines.size)
-    assert_equal("CREPL: #include not supported for Java", lines[0])
+    assert_equal("RCEL: #include not supported for Java", lines[0])
   end
   
   def test_csharp01
@@ -628,7 +628,7 @@ EOF
 #include <stdarg.h>
 EOF
     assert_equal(1, lines.size)
-    assert_equal("CREPL: #include not supported for C#", lines[0])
+    assert_equal("RCEL: #include not supported for C#", lines[0])
   end
   
 end

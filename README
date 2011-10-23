@@ -1,2 +1,6 @@
 
-A REPL for C, C#, C++, Java, and Objective C
+A RCEL (read compile execute loop) for C, C#, C++, Java, and Objective C
+
+How to use it:
+
+    ruby /PATH/TO/REPO/rcel.rb
