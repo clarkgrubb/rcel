@@ -5,6 +5,7 @@ require 'erb'
 require 'readline'
 require File.dirname(__FILE__) + '/clex.rb'
 require File.dirname(__FILE__) + '/fortran_lex.rb'
+require File.dirname(__FILE__) + '/pascal_lex.rb'
 require 'pp'
 
 class Rcel
@@ -23,7 +24,8 @@ class Rcel
   OBJC = 'objective-c'
   CPP = 'c++'
   FORTRAN95 = 'fortran95'
-  LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP, FORTRAN95 ]
+  PASCAL = 'pascal'
+  LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP, FORTRAN95, PASCAL ]
   
   def usage
     puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: rcel.rb LANGUAGE PROJECT_DIR"
@@ -41,6 +43,7 @@ class Rcel
   MONO = `which mono`.chomp
   MCS = `which gmcs`.chomp
   GFORTRAN = `which gfortran`.chomp
+  FPC = `which fpc`.chomp
   
   GCC_INCLUDE = {C=>'',CPP=>'',OBJC=>''}
   COMPILE_EXECUTABLE = {}
@@ -50,19 +53,21 @@ class Rcel
   COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[@language]} -framework Foundation #{File.join(@directory, SOURCE[OBJC])} -o #{File.join(@directory, EXECUTABLE[OBJC])} #{all_libraries}"'
   COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
   COMPILE_EXECUTABLE[FORTRAN95] = '"#{GFORTRAN} -o #{executable} #{source}"'
+  COMPILE_EXECUTABLE[PASCAL] = '"#{FPC} #{source}"'
   COMPILE_LIBRARY = {}
   COMPILE_LIBRARY[C] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{library}"'
   COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
   COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
   COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
-  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main',FORTRAN95=>'main'}
+  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main',FORTRAN95=>'main',PASCAL=>'main'}
   SOURCE = {C=>'main.c',
     JAVALANG=>'Main.java',
     CSHARP=>'Top.cs',
     OBJC=>'main.m',
     CPP=>'main.cpp',
-    FORTRAN95=>'main.f95'}
+    FORTRAN95=>'main.f95',
+    PASCAL=>'main.pas'}
   RUN_EXECUTABLE = {}
   RUN_EXECUTABLE[C] = '"#{executable}"'
   RUN_EXECUTABLE[JAVALANG] = '"#{JAVA} -cp #{@directory} #{EXECUTABLE[JAVALANG]}"'
@@ -70,16 +75,18 @@ class Rcel
   RUN_EXECUTABLE[OBJC] = '"#{executable}"'
   RUN_EXECUTABLE[CPP] = '"#{executable}"'
   RUN_EXECUTABLE[FORTRAN95] = '"#{executable}"'
-  SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp', FORTRAN95 => 'f95' }
+  RUN_EXECUTABLE[PASCAL] = '"#{executable}"'
+  SOURCE_SUFFIX = { C => 'c', JAVALANG => 'java', CSHARP => 'cs', OBJC => 'm', CPP => 'cpp', FORTRAN95 => 'f95', PASCAL => 'pas' }
   HEADER_SUFFIX = { C => 'h', JAVALANG => nil, CSHARP => nil, OBJC => 'h', CPP => 'h' }
-  OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o', FORTRAN95 => 'o' }
+  OBJECT_SUFFIX = { C => 'o', JAVALANG => 'class', CSHARP => 'dll', OBJC => 'o', CPP => 'o', FORTRAN95 => 'o', PASCAL => 'o' }
   LIBRARY_CONNECTOR = { C => ' ', JAVALANG => ' ', CSHARP => ',', OBJC => ' ', CPP => ' ' }
   LEX_LANGUAGE = { C => :c,
     JAVALANG => :java,
     CSHARP => :csharp,
     OBJC => :objective_c,
     CPP => :cpp,
-    FORTRAN95 => :fortran95}
+    FORTRAN95 => :fortran95,
+    PASCAL => :pascal}
   MAIN_TEMPLATE = {}
   TEMPLATE_DIR = File.join(File.dirname(__FILE__), 'templates')
   MAIN_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-main.erb'))
@@ -88,6 +95,7 @@ class Rcel
   MAIN_TEMPLATE[OBJC] = File.read(File.join(TEMPLATE_DIR, 'objc-main.erb'))
   MAIN_TEMPLATE[CPP] = File.read(File.join(TEMPLATE_DIR, 'cpp-main.erb'))
   MAIN_TEMPLATE[FORTRAN95] = File.read(File.join(TEMPLATE_DIR, 'fortran95-main.erb'))
+  MAIN_TEMPLATE[PASCAL] = File.read(File.join(TEMPLATE_DIR, 'pascal-main.erb'))
   LIBRARY_SOURCE_TEMPLATE = {}
   LIBRARY_HEADER_TEMPLATE = {}
   LIBRARY_SOURCE_TEMPLATE[C] = File.read(File.join(TEMPLATE_DIR, 'c-library-source.erb'))
@@ -103,12 +111,15 @@ class Rcel
     OBJC => [],
     JAVALANG => %w( import ),
     CSHARP => %w( using ),
-    FORTRAN95 => []}
+    FORTRAN95 => [],
+    PASCAL => []}
   NAMESPACE_SEPARATOR = { C => nil, OBJC => nil, CPP => '::', JAVALANG => '.', CSHARP => '.' }
 
   def lexer(lang)
     if :fortran95 == lang
       FortranLex.new(lang)
+    elsif :pascal == lang
+      PascalLex.new(lang)
     else
       Clex.new(lang)
     end

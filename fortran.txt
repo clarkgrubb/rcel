@@ -1,0 +1,48 @@
+program ::= program-unit [program-unit] ...
+
+program-unit ::= main-program | external-subprogram | module | block-data
+
+main-program ::= [program-stmt]
+                   [specification-part]
+                   [execution-part]
+                   [internal-subprogram-part]
+                   end-program-stmt
+
+specification-part ::= [use-stmt] ...
+                         [implicit-part]
+                         [declaration-construct] ...
+
+declaration-construct ::= derived-type-def | interface-block | type-declaration-stmt | specification-stmt | parameter-stmt | format-stmt | entry-stmt | stmt-function-stmt
+
+execution-part ::= executable-construct
+                     [execution-part-construct] ...
+
+execution-part-construct ::= executable-construct | format-stmt | entry-stmt | data-stmt
+
+type-declaration-stmt ::= type-spec [[,attr-spec] ... ::] entity-decl-list
+
+type-spec ::= integer [kind-selector] | real [kind-selector] | double precision | complex [kind-selector] | character [char-selector] | logical [kind-selector] | type (type-name)
+
+attr-spec ::=
+
+entity-decl-list ::= 
+
+executable-construct ::= FIXME
+
+format-stmt ::= FIXME
+
+entry-stmt ::= OBSOLETE? entry keyword used in F77 to define starting point of subroutine
+
+data-stmt ::= FIXME
+
+FORTRAN77 KEYWORDS
+==================
+assign, backspace, block data, call, close, common, continue, data, dimension, do, else, else if, end, endfile, endif, entry, equivalence, external, format, function, goto, if, implicit, inquire, intrinsic, open, parameter, pause, print, program, read, return, rewind, rewrite, save, stop, subroutine, then, write
+
+FORTRAN90 KEYWORDS
+===================
+<FORTRAN77_KEYWORDS>, allocate, allocatable, case, contains, cycle, deallocate, elsewhere, exit, include, interface, intent, module, namelist, nullify, only, operator, optional, pointer, private, procedure, public, result, recursive, select, sequence, target, use, while, where 
+
+FORTRAN95 KEYWORDS
+==================
+<FORTRAN90_KEYWORDS>, elemental, forall, pure

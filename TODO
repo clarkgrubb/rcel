@@ -1,4 +1,6 @@
 - fortran support
+  - recognize data declarations and put them at the top
+  - observe continuation character & marks statment as incomplete
 - go support
 - pascal support
 - ada support
