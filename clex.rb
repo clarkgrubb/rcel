@@ -25,7 +25,7 @@ class Clex
   DIRECTIVES_OBJC2 = %w( @class @defs @dynamic @encode @end @implementation @interface @private @protected @public @property @protocol @selector @synchronized @synthesize @try @catch @finally @throw )
   a = %w( __cmd __func__ BOOL Class id IMP nil Nil NO NSObject Protocol SEL self super YES )
   h = {}; a.each { |k| h[k] = k.to_sym }; UNIQUE_TOKENS_OBJC2 = h
-  
+
   QUADGRAPHS_JAVA5 = [ '>>>=' ]
   TRIGRAPHS_JAVA5 = [ '>>>', '<<=', '>>=' ]
   DIGRAPHS_JAVA5 = [ '==', '<=', '>=', '!=', '&&', '||',
@@ -38,7 +38,7 @@ class Clex
   REGEX_HEX_FLOAT_JAVA5 = '0[xX](?:[0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.?)(?:[pP][+-]?[0-9]+)[fFdD]?'
   KEYWORDS_JAVA5 = %w( abstract assert boolean break byte case catch char class const default do double else enum extends final finally float if goto implements import instanceof int interface long native package private protected public short static strictfp super switch synchronized this throw throws transient try void volatile while )
   UNIQUE_TOKENS_JAVA5 = { 'true' => :true, 'false' => :false, 'null' => :null }
-  
+
   def initialize(language)
     @language = language
     @regex_identifier = REGEX_IDENTIFIER_C99
@@ -101,7 +101,7 @@ class Clex
     end
   end
   private :lex_char_c99
-  
+
   def lex_char_java5(input)
     case input
     when /\A([^\\\n\r]')/ # 'a'
@@ -119,7 +119,7 @@ class Clex
     end
   end
   private :lex_char_java5
-  
+
   def lex_char(input)
     case @language
     when :java
@@ -129,7 +129,7 @@ class Clex
     end
   end
   private :lex_char
-  
+
   def lex_string(input)
     case input
     when /\A([^"\n\r\\]*")/ # end of string
@@ -240,7 +240,7 @@ class Clex
     return nil
   end
   private :lex_punctuator
-  
+
   # Returns three args: token_type, value, rest
   #
   # token types:
@@ -307,7 +307,7 @@ class Clex
     end
     0 == cnt
   end
-  
+
   def line_complete?(input)
     tokens = stream(input)
     if tokens.size > 1 and braces_balanced?(tokens)
@@ -317,5 +317,5 @@ class Clex
     end
     false
   end
-  
+
 end

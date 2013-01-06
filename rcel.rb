@@ -9,15 +9,15 @@ require File.dirname(__FILE__) + '/pascal_lex.rb'
 require 'pp'
 
 class Rcel
-  
+
   include Readline
 
   attr_accessor :language, :directory
-  
+
   class CompilationError < StandardError; end
   class ExecutionError < StandardError; end
   class LibraryEditError < StandardError; end
-  
+
   C = 'c'
   CSHARP = 'c#'
   JAVALANG = 'java'
@@ -26,7 +26,7 @@ class Rcel
   FORTRAN95 = 'fortran95'
   PASCAL = 'pascal'
   LANGUAGES = [ C, CSHARP, JAVALANG, OBJC, CPP, FORTRAN95, PASCAL ]
-  
+
   def usage
     puts "LANGUAGES: #{LANGUAGES.join(' ')}\nUSAGE: rcel.rb LANGUAGE PROJECT_DIR"
     exit -1
@@ -44,7 +44,7 @@ class Rcel
   MCS = `which gmcs`.chomp
   GFORTRAN = `which gfortran`.chomp
   FPC = `which fpc`.chomp
-  
+
   GCC_INCLUDE = {C=>'',CPP=>'',OBJC=>''}
   COMPILE_EXECUTABLE = {}
   COMPILE_EXECUTABLE[C] = '"#{GCC} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
@@ -124,7 +124,7 @@ class Rcel
       Clex.new(lang)
     end
   end
-  
+
   def quote_header(header)
     if /^\".+\"$/.match(header) or /^\<.+\>$/.match(header)
       header
@@ -140,13 +140,13 @@ class Rcel
     end
     ENV['EDITOR'] = /\S/.match(choice) ? choice : 'vi'
   end
-  
+
   def get_editor
     set_editor unless ENV['EDITOR']
     ENV['EDITOR']
   end
-  
-  def make_source(session)  
+
+  def make_source(session)
     stdout = $stdout
     source = File.join(@directory,SOURCE[@language])
     header_lines = session.header_lines
@@ -219,7 +219,7 @@ class Rcel
       @out.puts output
       raise ExecutionError
     end
-    output   
+    output
   end
 
   def get_name_array(name)
@@ -246,7 +246,7 @@ class Rcel
       File.join(namespace_array, base_name)
     end
   end
-  
+
   def edit_library(session, args)
     if @test
       name = args.shift
@@ -310,7 +310,7 @@ class Rcel
       session.libraries.reject! { |obj| /\/#{object}$/.match(obj) }
     end
   end
-  
+
   def line_complete?(line)
     return true if /\A\s*#/.match(line)
     @lexer.line_complete?(line)
@@ -414,7 +414,7 @@ class Rcel
       [nil,nil]
     end
   end
-  
+
   def process_command(session, line)
     cmd,cmd_arg = get_command(line)
     case cmd
@@ -523,7 +523,7 @@ class Rcel
       ' '
     end
   end
-  
+
   def repl(opts = {})
     raise "no language" unless @language
     raise "no directory" unless @directory
@@ -564,7 +564,7 @@ class Rcel
     CLASS_TESTS_CSHARP =
       [ lambda {|l| /\A\s*(public\s+)?enum\b/.match(l) },
       ]
-    
+
     def initialize(language)
       @language = language
       raise "unrecognized language #{@language}" unless LANGUAGES.include?(@language)
@@ -588,7 +588,7 @@ class Rcel
       @main_lines = []
       @arguments = ''
     end
-    
+
     def dup
       retval = Session.new(@language)
       retval.header_lines = @header_lines.dup
@@ -602,7 +602,7 @@ class Rcel
     def size
       [@header_lines,@class_lines,@main_lines].inject(0) {|m,o| m+o.size }
     end
-    
+
     def add(line, location)
       case location
       when ' '
@@ -651,7 +651,7 @@ class Rcel
       end
     end
   end
-end  
+end
 
 if $0 == __FILE__
   opts = {}
