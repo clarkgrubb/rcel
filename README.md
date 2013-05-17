@@ -49,8 +49,8 @@ Here is an example session:
 
 `rcel` will create these directories:
 
-* ~/Lang/C/rcel-project
-* ~/Lang/C++/rcel-project
-* ~/Lang/C#/rcel-project
-* ~/Lang/Java/rcel-project
-* ~/Lang/Objective-C/rcel-project
+* `~/Lang/C/rcel-project`
+* `~/Lang/C++/rcel-project`
+* `~/Lang/C#/rcel-project`
+* `~/Lang/Java/rcel-project`
+* `~/Lang/Objective-C/rcel-project`
