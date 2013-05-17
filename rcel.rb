@@ -654,13 +654,14 @@ class Rcel
 end
 
 if $0 == __FILE__
+  puts "DEBUG ARGV #{ARGV}"
   opts = {}
   ARGV.each do |arg|
     if /^--/.match(arg)
       opts[$'.to_sym] = true
     end
   end
-  ARGV.reject! { |arg| /^--/.match(arg) }
+  ARGV.reject! { |arg| /^--|rcel/.match(arg) }
   rcel = Rcel.new(ARGV, opts)
   rcel.language = rcel.prompt_for_language unless rcel.language
   rcel.directory = File.join(ENV['HOME'], "Lang/#{rcel.language.capitalize}/rcel-project") unless rcel.directory

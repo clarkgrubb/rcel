@@ -2,10 +2,16 @@ INSTALL_DIR ?= /usr/local/bin
 
 TEST_PROJECT_DIRS := objective-c-test
 
+LOCAL_MAN_DIR = /usr/local/share/man
+
+MAN1_SOURCE = $(wildcard doc/*.1.md)
+
+MAN1_TARGETS = $(patsubst %.md,%,$(MAN1_SOURCE))
+
 all: install
 
 rcel:
-	echo 'exec $(PWD)/rcel.rb' > $@
+	echo 'exec $(PWD)/rcel.rb "$$@"' > $@
 	chmod +x $@
 
 install: rcel
@@ -17,3 +23,23 @@ test:
 clean:
 	-rm -f rcel
 	-rm -rf $(TEST_PROJECT_DIRS)
+	-find doc -name '*.[0-9]' | xargs rm
+
+install-man: man
+	if [ ! -d $(LOCAL_MAN_DIR)/man1 ]; then \
+	echo directory does not exist: $(LOCAL_MAN_DIR)/man1; \
+	return 1; \
+	fi
+	for target in $(MAN1_TARGETS); \
+	do \
+	cp $$target $(LOCAL_MAN_DIR)/man1; \
+	done
+
+# An uninstalled man page can be viewed with the man command:
+#
+#   man doc/foo.1
+#
+man: $(MAN1_TARGETS)
+
+doc/%.1: doc/%.1.md
+	pandoc -s -s -w man $< -o $@
