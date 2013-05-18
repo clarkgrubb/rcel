@@ -4,7 +4,7 @@ A RCEL (read compile execute loop) for C, C#, C++, Java, and Objective C
 
 # SETUP
 
-`rcel` expects `gcc`, `java`, and `mono` to be installed.
+`rcel` expects `ruby`, `gcc`, `java`, and `mono` to be installed.
 
 To install `rcel` in `INSTALL_DIR` (or by default, `/usr/local/bin`), run
 

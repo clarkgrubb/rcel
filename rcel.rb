@@ -654,7 +654,6 @@ class Rcel
 end
 
 if $0 == __FILE__
-  puts "DEBUG ARGV #{ARGV}"
   opts = {}
   ARGV.each do |arg|
     if /^--/.match(arg)

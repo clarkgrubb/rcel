@@ -1,3 +1,9 @@
+SHELL := /bin/bash
+.SHELLFLAGS :=  -o pipefail
+
+.DELETE_ON_ERROR:
+.SUFFIXES:
+
 INSTALL_DIR ?= /usr/local/bin
 
 TEST_PROJECT_DIRS := objective-c-test
@@ -14,7 +20,11 @@ rcel:
 	echo 'exec $(PWD)/rcel.rb "$$@"' > $@
 	chmod +x $@
 
-install: rcel
+install:
+	if [ ! -e rcel ]; then \
+	echo "run 'make rcel' first"; \
+	exit 1; \
+	fi
 	cp rcel $(INSTALL_DIR)
 
 test:
@@ -28,7 +38,7 @@ clean:
 install-man: man
 	if [ ! -d $(LOCAL_MAN_DIR)/man1 ]; then \
 	echo directory does not exist: $(LOCAL_MAN_DIR)/man1; \
-	return 1; \
+	exit 1; \
 	fi
 	for target in $(MAN1_TARGETS); \
 	do \
