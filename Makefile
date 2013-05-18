@@ -34,6 +34,7 @@ clean:
 	-rm -f rcel
 	-rm -rf $(TEST_PROJECT_DIRS)
 	-find doc -name '*.[0-9]' | xargs rm
+	-rm TAGS
 
 install-man: man
 	if [ ! -d $(LOCAL_MAN_DIR)/man1 ]; then \
