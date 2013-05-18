@@ -20,7 +20,7 @@ rcel:
 	echo 'exec $(PWD)/rcel.rb "$$@"' > $@
 	chmod +x $@
 
-install:
+install: install-man
 	if [ ! -e rcel ]; then \
 	echo "run 'make rcel' first"; \
 	exit 1; \
