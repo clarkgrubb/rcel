@@ -36,8 +36,16 @@ class Rcel
     @out.puts File.read(File.join(TEMPLATE_DIR,'help.txt'))
   end
 
+  OS_TYPE = `uname -s`.chomp
+  OS_TYPE_LINUX = 'Linux'
+  OS_TYPE_DARWIN = 'Darwin'
+
+  CLANG = `which clang`.chomp
+  CLANGPP = `which clang++`.chomp
+  CLANGPP11 = "#{CLANGPP} -std=c++11 -stdlib=libc++"
   GCC = `which gcc`.chomp
   GPP = `which g++`.chomp
+  GPP11 = "#{GPP} -std=c++0x"
   JAVA = `which java`.chomp
   JAVAC = `which javac`.chomp
   MONO = `which mono`.chomp
@@ -51,7 +59,11 @@ class Rcel
   COMPILE_EXECUTABLE[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{File.join(@directory, SOURCE[JAVALANG])}"'
   COMPILE_EXECUTABLE[CSHARP] = '"#{MCS} #{all_libraries.empty? ? \'\': \'-reference:\'}#{all_libraries} #{File.join(@directory, SOURCE[CSHARP])}"'
   COMPILE_EXECUTABLE[OBJC] = '"#{GCC} #{GCC_INCLUDE[@language]} -framework Foundation #{File.join(@directory, SOURCE[OBJC])} -o #{File.join(@directory, EXECUTABLE[OBJC])} #{all_libraries}"'
-  COMPILE_EXECUTABLE[CPP] = '"#{GPP} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
+  if OS_TYPE == OS_TYPE_DARWIN
+    COMPILE_EXECUTABLE[CPP] = '"#{CLANGPP11} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'    
+  else
+    COMPILE_EXECUTABLE[CPP] = '"#{GPP11} #{GCC_INCLUDE[@language]} -o #{executable} #{source} #{all_libraries}"'
+  end
   COMPILE_EXECUTABLE[FORTRAN95] = '"#{GFORTRAN} -o #{executable} #{source}"'
   COMPILE_EXECUTABLE[PASCAL] = '"#{FPC} #{source}"'
   COMPILE_LIBRARY = {}
@@ -59,8 +71,18 @@ class Rcel
   COMPILE_LIBRARY[JAVALANG] = '"#{JAVAC} -cp #{@directory} #{library}"'
   COMPILE_LIBRARY[CSHARP] = '"#{MCS} -target:library #{library}"'
   COMPILE_LIBRARY[OBJC] = '"#{GCC} -c #{library} -o #{compiled_library}"'
-  COMPILE_LIBRARY[CPP] = '"#{GPP} -c #{library} -o #{compiled_library}"'
-  EXECUTABLE = {C=>'main',JAVALANG=>'Main',CSHARP=>'Top.exe',OBJC=>'main',CPP=>'main',FORTRAN95=>'main',PASCAL=>'main'}
+  if OS_TYPE == OS_TYPE_DARWIN
+    COMPILE_LIBRARY[CPP] = '"#{CLANGPP11} -c #{library} -o #{compiled_library}"'
+  else
+    COMPILE_LIBRARY[CPP] = '"#{GPP11} -c #{library} -o #{compiled_library}"'
+  end
+  EXECUTABLE = {C=>'main',
+    JAVALANG=>'Main',
+    CSHARP=>'Top.exe',
+    OBJC=>'main',
+    CPP=>'main',
+    FORTRAN95=>'main',
+    PASCAL=>'main'}
   SOURCE = {C=>'main.c',
     JAVALANG=>'Main.java',
     CSHARP=>'Top.cs',
