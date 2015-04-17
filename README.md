@@ -2,6 +2,8 @@
 
 A RCEL (read compile execute loop) for C, C#, C++, Java, and Objective C
 
+Also known as a "Fool's REPL"
+
 # SETUP
 
 `rcel` expects `ruby`, `gcc`, `java`, and `mono` to be installed.
